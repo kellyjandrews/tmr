@@ -10,10 +10,14 @@
   },
   "dependencies": {
     "@expo/next-adapter": "^6.0.0",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/supabase-js": "^2.46.1",
     "next": "15.0.3",
     "react": "19.0.0-rc-66855b96-20241106",
     "react-dom": "19.0.0-rc-66855b96-20241106",
-    "react-native-web": "^0.19.13"
+    "react-native-web": "^0.19.13",
+    "tmr-app-helpers": "*",
+    "tmr-ui":"*"
   },
   "devDependencies": {
     "@types/node": "^20",
