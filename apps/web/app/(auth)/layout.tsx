@@ -8,7 +8,7 @@ export default async function AuthLayout({
 }) {
 
 
-//   const cookieStore = cookies()
+  // const cookieStore = cookies()
   
   const supabase = await createClient()
 

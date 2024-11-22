@@ -1,7 +1,5 @@
 'use client'
-import { createBrowserClient } from '@supabase/ssr'
-import { config } from 'dotenv';
-config({ path: '../../.env.local' })
+import { createBrowserClient } from "@supabase/ssr";
 
 export function createClient() {
     return createBrowserClient(

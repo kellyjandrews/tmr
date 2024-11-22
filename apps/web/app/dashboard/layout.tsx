@@ -1,22 +1,11 @@
-import { createClient } from '../../lib/supabase/server'
-import { redirect } from 'next/navigation'
 
-export default async function AuthLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
 
 
-//   const cookieStore = cookies()
-  
-  const supabase = await createClient()
-
-  const { data: { session } } = await supabase.auth.getSession()
-
-  if (session) {
-    redirect('/dashboard')
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
