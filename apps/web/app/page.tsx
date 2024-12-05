@@ -1,16 +1,16 @@
 "use client";
  
-import { View } from "ui/view";
- 
+import Hero from "../components/hero";
+import List from "../components/productList";
+
 export default function Home() {
   return (
-    <View
-      className="flex-1 justify-center items-center"
-    >
-      <p>
-        Get started by editing&nbsp;
-        <code className="font-mono font-bold">app/page.tsx</code>
-      </p>
-    </View>
+    <div>
+    <Hero />
+    <List />
+    <List />
+    <List />
+    </div>
+
   );
 }
