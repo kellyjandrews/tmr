@@ -5,11 +5,6 @@ import { getStoreListings } from '@/actions/listing';
 
 export const dynamic = 'force-dynamic';
 
-interface StorePageProps {
-  params: {
-    slug: string;
-  };
-}
 
 export type Listing = {
   id: string;
@@ -31,7 +26,9 @@ export type Store = {
 };
 
 
-export default async function StorePage({ params }: StorePageProps) {
+export default async function StorePage({ params }: {
+  params: Promise<{ slug: string }>
+}) {
   const { slug } = await params;
   
   // Get the store data
