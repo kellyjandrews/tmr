@@ -1,7 +1,13 @@
 // app/page.tsx
 import Link from 'next/link';
+import ListingList from '@/components/ListingList';
+import { getFeaturedListings } from '@/actions/listings';
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Fetch featured listings directly in the server component
+  const featuredListingsResult = await getFeaturedListings(4);
+  const featuredListings = featuredListingsResult.success ? featuredListingsResult.data : [];
+
   return (
     <>
       {/* Hero Section */}
@@ -30,43 +36,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Products Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="w-full">
-          <h2 className="text-2xl font-bold text-purple-900 mb-6">Featured Items</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* This would be populated from a database, showing static placeholders for now */}
-            {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <div className="h-48 bg-purple-100 flex items-center justify-center">
-                  <span className="text-3xl">✨</span>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-medium text-purple-800">Magical Item #{item}</h3>
-                  <p className="text-sm text-gray-600 mt-1">Sold by Magic Maker</p>
-                  <div className="mt-2 flex justify-between items-center">
-                    <span className="font-bold text-purple-900">${(19.99 * item).toFixed(2)}</span>
-                    <Link 
-                      href={`/item/${item}`} 
-                      className="text-sm text-purple-700 hover:text-purple-900"
-                    >
-                      View Details →
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-8 text-center">
-            <Link
-              href="/marketplace"
-              className="inline-block px-6 py-2 text-purple-800 border border-purple-800 rounded-md hover:bg-purple-50"
-            >
-              View All Items
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Featured Products Section - Using our new component */}
+      <ListingList 
+        title="Featured Listings" 
+        initialListings={featuredListings} 
+        showViewAll={true}
+        viewAllLink="/marketplace"
+      />
 
       {/* Categories Section */}
       <section className="py-12 px-4 sm:px-6 lg:px-8 bg-purple-50">

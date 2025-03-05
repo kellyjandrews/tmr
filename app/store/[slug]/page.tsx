@@ -1,20 +1,11 @@
 // app/store/[slug]/page.tsx
 import { notFound } from 'next/navigation';
 import { getStoreBySlug } from '@/actions/store';
-import { getStoreListings } from '@/actions/listing';
+import { fetchListings } from '@/actions/listings';
+import ListingList from '@/components/ListingList';
 
 export const dynamic = 'force-dynamic';
 
-
-export type Listing = {
-  id: string;
-  store_id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  created_at: string;
-  updated_at: string;
-};
 
 export type Store = {
   id: string;
@@ -26,9 +17,26 @@ export type Store = {
 };
 
 
-export default async function StorePage({ params }: {
-  params: Promise<{ slug: string }>
-}) {
+export async function generateMetadata({ params }: {params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const storeResult = await getStoreBySlug(slug);
+  
+  if (!storeResult.success || !storeResult.data) {
+    return {
+      title: 'Store Not Found',
+      description: 'The requested magical store could not be found',
+    };
+  }
+
+  const store = storeResult.data as Store;
+  
+  return {
+    title: store.name,
+    description: `Browse magical items from ${store.name}`,
+  };
+}
+
+export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   
   // Get the store data
@@ -41,40 +49,31 @@ export default async function StorePage({ params }: {
   const store = storeResult.data as Store;
 
   // Get the store's listings
-  const listingsResult = await getStoreListings(store.id);
-  const listings = listingsResult.success ? listingsResult.data as Listing[] : [];
+  const listingsResult = await fetchListings({ 
+    storeId: store.id,
+    limit: 12
+  });
+  
+  const listings = listingsResult.success ? listingsResult.data : [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">{store.name}</h1>
-        <p className="text-gray-500 mt-2">@{store.slug}</p>
+    <div className="max-w-7xl mx-auto">
+      {/* Store header */}
+      <div className="bg-purple-800 py-8 px-4 sm:px-6 lg:px-8 text-white">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl font-bold">{store.name}</h1>
+          <p className="mt-2 text-purple-200">@{store.slug}</p>
+        </div>
       </div>
       
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Products</h2>
-        
-        {listings.length === 0 ? (
-          <p className="text-gray-500">No products available.</p>
-        ) : (
-          <ul className="space-y-2 divide-y divide-gray-200">
-            {listings.map((listing) => (
-              <li key={listing.id} className="py-3">
-                <div className="flex justify-between">
-                  <div>
-                    <h3 className="font-medium">{listing.name}</h3>
-                    {listing.description && (
-                      <p className="text-gray-600 text-sm mt-1">{listing.description}</p>
-                    )}
-                  </div>
-                  <div className="text-lg font-semibold">
-                    ${listing.price.toFixed(2)}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+      {/* Store listings */}
+      <div className="max-w-7xl mx-auto">
+        <ListingList
+          title="Products"
+          initialListings={listings}
+          showViewAll={false}
+          emptyMessage="This store doesn't have any listings yet."
+        />
       </div>
     </div>
   );

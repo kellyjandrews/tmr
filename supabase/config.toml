@@ -30,6 +30,8 @@ shadow_port = 54320
 # server_version;` on the remote database to check.
 major_version = 15
 
+
+
 [db.pooler]
 enabled = false
 # Port to use for the local connection pooler.
@@ -43,11 +45,8 @@ default_pool_size = 20
 max_client_conn = 100
 
 [db.seed]
-# If enabled, seeds the database after migrations during a db reset.
 enabled = true
-# Specifies an ordered list of seed files to load during db reset.
-# Supports glob patterns relative to supabase directory: './seeds/*.sql'
-sql_paths = ['./seed.sql']
+sql_paths = ['./seed/*.sql']
 
 [realtime]
 enabled = true
