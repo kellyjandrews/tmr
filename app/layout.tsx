@@ -2,7 +2,8 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import '@/styles/globals.css';
-import Navbar from '@/components/Navbar';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase';
 
@@ -10,10 +11,10 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | MyApp',
-    default: 'MyApp - User Registration System',
+    template: '%s | The Magic Resource',
+    default: 'The Magic Resource - Magical Marketplace',
   },
-  description: 'A simple user registration system built with NextJS and Supabase',
+  description: 'A peer-to-peer marketplace for magical items and resources',
 };
 
 export default async function RootLayout({
@@ -21,7 +22,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Get current user for the navbar
+  // Get current user for the header
   let user = null;
   const cookieStore = await cookies();
   const token = cookieStore.get('sb-auth-token')?.value;
@@ -34,10 +35,13 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Navbar user={user} />
-        <main>
-          {children}
-        </main>
+        <div className="flex flex-col min-h-screen">
+          <Header user={user} />
+          <main className="flex-grow">
+            {children}
+          </main>
+          <Footer />
+        </div>
       </body>
     </html>
   );
