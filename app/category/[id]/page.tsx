@@ -6,10 +6,11 @@ import { getListingsByCategory } from '@/actions/listings';
 import ListingList from '@/components/ListingList';
 
 export const dynamic = 'force-dynamic';
-
+ 
 // Generate metadata for the page
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  const categoryResult = await getCategoryById(params.id);
+export async function generateMetadata({ params }: { params: Promise<{ id: string } >}) {
+  const { id } = await params;
+  const categoryResult = await getCategoryById(id);
   
   if (!categoryResult.success || !categoryResult.data) {
     return {
@@ -26,9 +27,9 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   };
 }
 
-export default async function CategoryPage({ params }: { params: { id: string } }) {
-  // Fetch the category data
-  const categoryResult = await getCategoryById(params.id);
+export default async function CategoryPage({ params }: { params: Promise<{ id: string } >}) {
+  const { id } = await params;
+  const categoryResult = await getCategoryById(id);
 
   if (!categoryResult.success || !categoryResult.data) {
     notFound();
