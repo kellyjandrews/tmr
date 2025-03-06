@@ -2,6 +2,31 @@
 import Link from 'next/link';
 import ListingList from '@/components/ListingList';
 import { getFeaturedListings } from '@/actions/listings';
+import { getMainCategories } from '@/actions/categories';
+import CategoryGrid from '@/components/CategoryGrid';
+import { Suspense } from 'react';
+
+// Loading fallback for categories
+function CategoryGridSkeleton() {
+  return (
+    <section className="py-12 px-4 sm:px-6 lg:px-8 bg-purple-50">
+      <div className="w-full max-w-7xl mx-auto">
+        <h2 className="text-2xl font-bold text-purple-900 mb-6 text-center">Explore Categories</h2>
+        <div className="flex justify-center items-center h-48">
+          <div className="animate-pulse text-purple-500">Loading categories...</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Server component to fetch categories
+async function CategoriesSection() {
+  const categoriesResult = await getMainCategories();
+  const categories = categoriesResult.success ? categoriesResult.data : [];
+  
+  return <CategoryGrid initialCategories={categories} />;
+}
 
 export default async function HomePage() {
   // Fetch featured listings directly in the server component
@@ -45,28 +70,14 @@ export default async function HomePage() {
       />
 
       {/* Categories Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 bg-purple-50">
-        <div className="w-full">
-          <h2 className="text-2xl font-bold text-purple-900 mb-6">Explore Categories</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {['Wands', 'Potions', 'Spellbooks', 'Crystals', 'Artifacts', 'Ingredients'].map((category) => (
-              <Link 
-                key={category}
-                href={`/category/${category.toLowerCase()}`}
-                className="bg-white p-4 rounded-lg text-center shadow-sm hover:shadow-md transition-shadow border border-gray-100"
-              >
-                <h3 className="font-medium text-purple-800">{category}</h3>
-                <p className="text-xs text-gray-500 mt-1">Browse Collection</p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+      <Suspense fallback={<CategoryGridSkeleton />}>
+        <CategoriesSection />
+      </Suspense>
 
       {/* How It Works Section */}
       <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="w-full">
-          <h2 className="text-2xl font-bold text-purple-900 mb-6 text-center">How The Magic Resource Works</h2>
+        <div className="w-full max-w-7xl mx-auto">
+          <h2 className="text-2xl font-bold text-purple-900 mb-8 text-center">How The Magic Resource Works</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-purple-50 p-6 rounded-lg">
               <div className="w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center text-purple-900 font-bold mb-4">1</div>

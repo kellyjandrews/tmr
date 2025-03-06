@@ -1,12 +1,3 @@
-ALTER TABLE public.listings DISABLE ROW LEVEL SECURITY;
-
--- Revoke all existing policies
-DROP POLICY IF EXISTS "Store owners can create listings" ON public.listings;
-DROP POLICY IF EXISTS "Store owners can update listings" ON public.listings;
-DROP POLICY IF EXISTS "Store owners can delete listings" ON public.listings;
-DROP POLICY IF EXISTS "Anyone can view listings" ON public.listings;
-
-
 -- Seed Listings using simple SQL generation
 WITH store_categories AS (
     SELECT 
@@ -94,40 +85,5 @@ SELECT
     created_at, 
     updated_at
 FROM generated_listings
-WHERE listing_num <= 50
+WHERE listing_num <= 500
 ORDER BY store_id, listing_num;
-
-
--- Re-enable RLS
-ALTER TABLE public.listings ENABLE ROW LEVEL SECURITY;
-
--- Restore original policies
-CREATE POLICY "Anyone can view listings"
-  ON public.listings FOR SELECT
-  TO authenticated, anon
-  USING (true);
-
-CREATE POLICY "Store owners can create listings"
-  ON public.listings FOR INSERT
-  WITH CHECK (
-    auth.uid() IN (
-      SELECT user_id FROM stores WHERE id = store_id
-    )
-  );
-
-CREATE POLICY "Store owners can update listings"
-  ON public.listings FOR UPDATE
-  USING (
-    auth.uid() IN (
-      SELECT user_id FROM stores WHERE id = store_id
-    )
-  );
-
-CREATE POLICY "Store owners can delete listings"
-  ON public.listings FOR DELETE
-  USING (
-    auth.uid() IN (
-      SELECT user_id FROM stores WHERE id = store_id
-    )
-  );
-
