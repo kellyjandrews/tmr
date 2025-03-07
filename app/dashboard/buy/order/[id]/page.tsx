@@ -21,8 +21,9 @@ export const metadata = {
   description: 'View details of your magical item purchase',
 };
 
-export default async function OrderDetailPage({ params }: { params: { id: string } }) {
+export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   // Get the session server-side
+  const {id} =  await params
   const cookieStore = await cookies();
   const token = cookieStore.get('sb-auth-token')?.value;
 
@@ -38,7 +39,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
 
   // In a real implementation, we'd fetch the order details from the database
   // For now, we'll use hardcoded data for the specific order ID
-  const orderId = params.id;
+  const orderId =  id;
   
   // Mock order data
   const order = {
