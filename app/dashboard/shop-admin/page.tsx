@@ -1,34 +1,50 @@
-// app/dashboard/shop-admin/page.tsx
-import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase';
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
-import { getUserStore } from '@/actions/store';
+import Link from 'next/link';
 import type { Store } from '@/types/store';
 
-export const metadata = {
-  title: 'Shop Admin | Dashboard',
-  description: 'Manage your magical shop',
-};
+export default function ShopAdminPage() {
+  const router = useRouter();
+  const [store, setStore] = useState<Store | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export default async function ShopAdminPage() {
-  // Get the session server-side
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-auth-token')?.value;
+  useEffect(() => {
+    const fetchStoreData = async () => {
+      try {
+        setLoading(true);
+        // Use our new direct server action
+        const { getUserStoreDirect } = await import('@/app/dashboard/actions');
+        const storeResult = await getUserStoreDirect();
+        
+        if (storeResult.success && storeResult.data) {
+          setStore(storeResult.data as Store);
+        }
+      } catch (error) {
+        console.error('Error fetching store data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!token) {
-    redirect('/login');
+    fetchStoreData();
+  }, []);
+
+  const handleCreateStore = () => {
+    router.push('/dashboard/create-store');
+  };
+
+  if (loading) {
+    return (
+      <DashboardPageWrapper pageName="Shop Admin">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500" />
+        </div>
+      </DashboardPageWrapper>
+    );
   }
-
-  const { data: { user } } = await supabase.auth.getUser(token);
-  
-  if (!user) {
-    redirect('/login');
-  }
-
-  // Get the user's store if they have one
-  const storeResult = await getUserStore();
-  const store = storeResult.success && storeResult.data ? storeResult.data as Store : null;
 
   return (
     <DashboardPageWrapper pageName="Shop Admin">
@@ -47,9 +63,9 @@ export default async function ShopAdminPage() {
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Shop URL</p>
                   <p className="font-medium text-gray-900">
-                    <a href={`/store/${store.slug}`} className="text-purple-700 hover:text-purple-900">
+                    <Link href={`/store/${store.slug}`} className="text-purple-700 hover:text-purple-900">
                       /store/{store.slug}
-                    </a>
+                    </Link>
                   </p>
                 </div>
                 <div>
@@ -64,19 +80,23 @@ export default async function ShopAdminPage() {
                 </div>
               </div>
               
-              <div className="mt-6 flex">
-                <button type="button" className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md mr-3">
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link href="/dashboard/edit-store" className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md inline-block">
                   Edit Shop Details
-                </button>
-                <button type="button" className="bg-white hover:bg-gray-50 text-purple-700 border border-purple-700 px-4 py-2 rounded-md">
+                </Link>
+                <Link href={`/store/${store.slug}`} className="bg-white hover:bg-gray-50 text-purple-700 border border-purple-700 px-4 py-2 rounded-md inline-block">
                   Preview Shop
-                </button>
+                </Link>
               </div>
             </div>
           ) : (
             <div className="text-center py-8">
               <p className="text-gray-600 mb-4">You haven&apos;t set up your magical shop yet!</p>
-              <button type="button" className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-md">
+              <button
+              type="button"
+                onClick={handleCreateStore}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-md"
+              >
                 Create Your Shop
               </button>
             </div>
