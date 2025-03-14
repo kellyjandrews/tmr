@@ -1,14 +1,16 @@
 // app/listing/[id]/page.tsx
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getListingById, getRelatedListings } from '@/actions/listings';
 import ListingList from '@/components/ListingList';
-import  Image  from 'next/image';
-export const dynamic = 'force-dynamic';
+import { supabase } from '@/lib/supabase';
 
+export const dynamic = 'force-dynamic';
+ 
 // Generate metadata for the page
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const { id } = params;
   const listingResult = await getListingById(id);
   
   if (!listingResult.success || !listingResult.data) {
@@ -26,9 +28,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   };
 }
 
-
-export default async function ListingPage({ params }: {params: Promise<{id: string }>}) {
-  const { id } = await params;
+export default async function ListingPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   
   // Fetch the listing data
   const listingResult = await getListingById(id);
@@ -38,6 +39,31 @@ export default async function ListingPage({ params }: {params: Promise<{id: stri
   }
   
   const listing = listingResult.data;
+
+  // Only show active listings to the public
+  if (listing.status !== 'active') {
+    notFound();
+  }
+
+  // Get all images for the listing
+  const { data: images } = await supabase
+    .from('listing_images')
+    .select('image_url, display_order')
+    .eq('listing_id', id)
+    .order('display_order');
+
+  // Get shipping info
+  const { data: shipping } = await supabase
+    .from('listing_shipping')
+    .select('flat_rate')
+    .eq('listing_id', id)
+    .single();
+
+  // Get the listing's categories
+  const { data: categories } = await supabase
+    .from('listing_categories')
+    .select('categories(id, name)')
+    .eq('listing_id', id);
 
   // Fetch related listings (same category or from same store)
   const relatedListingsResult = await getRelatedListings(id);
@@ -53,16 +79,49 @@ export default async function ListingPage({ params }: {params: Promise<{id: stri
       
       <div className="bg-white p-6 rounded-lg shadow-md">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Listing Image */}
-          <div className="bg-purple-100 aspect-square rounded-lg flex items-center justify-center">
-            {listing.image_url ? (
-              <Image 
-                src={listing.image_url} 
-                alt={listing.name} 
-                className="w-full h-full object-cover rounded-lg"
-              />
-            ) : (
-              <span className="text-6xl">✨</span>
+          {/* Listing Images */}
+          <div className="space-y-4">
+            <div className="aspect-square bg-purple-100 rounded-lg overflow-hidden relative">
+              {(images && images.length > 0) ? (
+                <Image 
+                  src={images[0].image_url} 
+                  alt={listing.name} 
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              ) : listing.image_url ? (
+                <Image 
+                  src={listing.image_url} 
+                  alt={listing.name} 
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center">
+                  <span className="text-6xl">✨</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Thumbnail images */}
+            {images && images.length > 1 && (
+              <div className="flex space-x-2 overflow-x-auto">
+                {images.map((image, index) => (
+                  <div 
+                    key={index}
+                    className="w-20 h-20 flex-shrink-0 bg-purple-50 rounded-md overflow-hidden relative"
+                  >
+                    <Image 
+                      src={image.image_url} 
+                      alt={`${listing.name} thumbnail ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
             )}
           </div>
           
@@ -83,15 +142,56 @@ export default async function ListingPage({ params }: {params: Promise<{id: stri
               ${Number.parseFloat(listing.price.toString()).toFixed(2)}
             </div>
             
+            {shipping && (
+              <p className="text-sm text-gray-600 mt-1">
+                {shipping.flat_rate > 0 
+                  ? `+ ${shipping.flat_rate.toFixed(2)} shipping` 
+                  : 'Free shipping'}
+              </p>
+            )}
+            
+            {/* Categories */}
+            {categories && categories.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {categories.map((cat) => (
+                  <Link 
+                    key={cat.categories.id}
+                    href={`/category/${cat.categories.id}`}
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+                  >
+                    {cat.categories.name}
+                  </Link>
+                ))}
+              </div>
+            )}
+            
             <div className="mt-6">
               <h2 className="text-lg font-semibold text-purple-900">Description</h2>
-              <p className="mt-2 text-gray-700">
-                {listing.description || 'No description provided.'}
-              </p>
+              <div className="mt-2 text-gray-700 prose">
+                {listing.description ? (
+                  <p>{listing.description}</p>
+                ) : (
+                  <p className="text-gray-500 italic">No description provided.</p>
+                )}
+              </div>
+            </div>
+            
+            <div className="mt-6">
+              <div className="flex items-center mb-2">
+                <div className="h-4 w-4 rounded-full bg-green-500 mr-2" />
+                <p className="text-sm text-gray-800">
+                  {listing.quantity > 0 
+                    ? `In stock: ${listing.quantity} available` 
+                    : 'Out of stock'}
+                </p>
+              </div>
             </div>
             
             <div className="mt-8">
-              <button type="button" className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 px-4 rounded">
+              <button 
+                type="button" 
+                className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 px-4 rounded"
+              >
                 Contact Seller
               </button>
             </div>
@@ -100,7 +200,7 @@ export default async function ListingPage({ params }: {params: Promise<{id: stri
       </div>
       
       {/* Related Listings */}
-      {relatedListings ? relatedListings.length > 0 && (
+      {relatedListings.length > 0 && (
         <div className="mt-12">
           <ListingList
             title="You May Also Like"
@@ -108,7 +208,6 @@ export default async function ListingPage({ params }: {params: Promise<{id: stri
             showViewAll={false}
           />
         </div>
-      ):null}
+      )}
     </div>
   );
-}

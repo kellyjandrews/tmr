@@ -3,19 +3,8 @@ import { notFound } from 'next/navigation';
 import { getStoreBySlug } from '@/actions/store';
 import { fetchListings } from '@/actions/listings';
 import ListingList from '@/components/ListingList';
-
+import type {Store} from '@/types/store';
 export const dynamic = 'force-dynamic';
-
-
-export type Store = {
-  id: string;
-  user_id: string;
-  name: string;
-  slug: string;
-  created_at: string;
-  updated_at: string;
-};
-
 
 export async function generateMetadata({ params }: {params: Promise<{ slug: string }> }) {
   const { slug } = await params;
