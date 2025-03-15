@@ -1,11 +1,10 @@
-// components/ListingList.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
-import type { Listing } from '@/actions/listings';
 import Image from 'next/image';
+import { supabase } from '@/lib/supabase';
+import type { Listing } from '@/types/listing';
 
 type ListingListProps = {
   title?: string;
@@ -56,7 +55,21 @@ export default function ListingList({
         }
 
         if (categoryId) {
-          query = query.eq('category_id', categoryId);
+          // For category filtering, we need to use a more complex approach with the junction table
+          const { data: listingIds } = await supabase
+            .from('listing_categories')
+            .select('listing_id')
+            .eq('category_id', categoryId);
+          
+          if (listingIds && listingIds.length > 0) {
+            const ids = listingIds.map(item => item.listing_id);
+            query = query.in('id', ids);
+          } else {
+            // No listings in this category
+            setListings([]);
+            setLoading(false);
+            return;
+          }
         }
 
         const { data, error: queryError } = await query;
@@ -114,12 +127,13 @@ export default function ListingList({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {listings.map((listing) => (
               <div key={listing.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <div className="h-48 bg-purple-100 flex items-center justify-center">
+                <div className="h-48 bg-purple-100 flex items-center justify-center relative">
                   {listing.image_url ? (
                     <Image 
                       src={listing.image_url} 
                       alt={listing.name} 
-                      className="h-full w-full object-cover"
+                      fill
+                      className="object-cover"
                     />
                   ) : (
                     <span className="text-3xl">✨</span>
@@ -139,7 +153,7 @@ export default function ListingList({
                     </p>
                   )}
                   <div className="mt-2 flex justify-between items-center">
-                    <span className="font-bold text-purple-900">${Number.parseFloat(listing.price.toString()).toFixed(2)}</span>
+                    <span className="font-bold text-purple-900">${Number(listing.price).toFixed(2)}</span>
                     <Link 
                       href={`/listing/${listing.id}`} 
                       className="text-sm text-purple-700 hover:text-purple-900"

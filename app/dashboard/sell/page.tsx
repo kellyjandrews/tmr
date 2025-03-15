@@ -1,14 +1,12 @@
+// app/dashboard/sell/page.tsx
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-// import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import ManageListingsClient from '@/components/listings/ManageListingsClient';
-import { 
-  PlusCircle,
-  AlertCircle,
-} from 'lucide-react';
+import { PlusCircle, AlertCircle } from 'lucide-react';
+import type { Listing } from '@/types/listing';
 
 export const metadata = {
   title: 'Sell | Dashboard',
@@ -48,6 +46,7 @@ export default async function SellPage() {
     .select(`
       id,
       name,
+      description,
       price,
       quantity,
       status,
@@ -115,7 +114,7 @@ export default async function SellPage() {
                 </Link>
               </div>
             ) : (
-              <ManageListingsClient initialListings={listings} />
+              <ManageListingsClient initialListings={listings as Listing[]} />
             )}
           </div>
         </div>

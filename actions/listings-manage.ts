@@ -5,24 +5,12 @@ import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-
-// Type for the listing form data
-export type ListingFormData = {
-    id?: string;
-    name: string;
-    description: string;
-    price: number;
-    shipping_cost: number;
-    quantity: number;
-    status: 'draft' | 'active' | 'hidden' | 'sold';
-    categories: string[];
-    images: string[];
-    store_id?: string;
-};
+import type { ListingFormData } from '@/types/listing';
+import type { ActionResponse } from '@/types/common';
 
 // Validation schema for listing form
 const listingSchema = z.object({
-    id: z.string().optional(),
+    id: z.string().uuid().optional(),
     name: z.string().min(3, 'Name must be at least 3 characters'),
     description: z.string().min(10, 'Description must be at least 10 characters'),
     price: z.coerce.number().positive('Price must be greater than 0'),
@@ -33,14 +21,6 @@ const listingSchema = z.object({
     images: z.array(z.string()).min(1, 'Add at least one image'),
     store_id: z.string().uuid().optional()
 });
-
-// Type for server action responses
-export type ActionResponse = {
-    success: boolean;
-    message?: string;
-    error?: string;
-    data?: unknown;
-};
 
 /**
  * Create a new listing
@@ -251,6 +231,7 @@ export async function updateListing(formData: ListingFormData): Promise<ActionRe
             };
         }
 
+
         // Check if the user owns the store
         if (listingData.stores.user_id !== userData.user.id) {
             return {
@@ -316,7 +297,7 @@ export async function updateListing(formData: ListingFormData): Promise<ActionRe
 
         if (validatedData.images.length > 0) {
             const imageEntries = validatedData.images.map((imageUrl, index) => ({
-                listing_id: validatedData.id!,
+                listing_id: validatedData.id,
                 image_url: imageUrl,
                 display_order: index
             }));
@@ -590,13 +571,13 @@ export async function getListingForEdit(listingId: string): Promise<ActionRespon
         const { data: listing, error: listingError } = await supabase
             .from('listings')
             .select(`
-        *,
-        stores!inner(
-          id,
-          name,
-          user_id
-        )
-      `)
+                *,
+                stores!inner(
+                    id,
+                    name,
+                    user_id
+                )
+            `)
             .eq('id', listingId)
             .single();
 
@@ -651,7 +632,7 @@ export async function getListingForEdit(listingId: string): Promise<ActionRespon
             // Not critical, so we'll continue
         }
 
-        // Combine all the data
+        // Combine all the data into ListingFormData
         const listingFormData: ListingFormData = {
             id: listing.id,
             name: listing.name,

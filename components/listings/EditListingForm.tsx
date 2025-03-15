@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateListing } from '@/actions/listings-manage';
 import ListingForm from '@/components/listings/ListingForm';
-import type { ListingFormData } from '@/actions/listings-manage';
-import type { Category } from '@/actions/categories';
+import type { ListingFormData } from '@/types/listing';
+import type { Category } from '@/types/category';
 
 type EditListingFormProps = {
   listing: ListingFormData;

@@ -20,17 +20,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { changeListingStatus, deleteListing } from '@/actions/listings-manage';
-
-type Listing = {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  status: string;
-  image_url: string | null;
-  created_at: string;
-  updated_at: string;
-};
+import type { Listing } from '@/types/listing';
 
 type ManageListingsClientProps = {
   initialListings: Listing[];
@@ -290,13 +280,6 @@ export default function ManageListingsClient({ initialListings }: ManageListings
                 scope="col" 
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                 onClick={() => handleSort('price')}
-                onKeyUp={(e) => {
-                  e.preventDefault();
-                  console.log(e.altKey)
-                  console.log(e.ctrlKey)
-                  console.log(e.shiftKey)
-                  console.log(e.key.charAt)
-                }}
               >
                 <div className="flex items-center">
                   Price
@@ -311,13 +294,6 @@ export default function ManageListingsClient({ initialListings }: ManageListings
                 scope="col" 
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                 onClick={() => handleSort('quantity')}
-                onKeyUp={(e) => {
-                  e.preventDefault();
-                  console.log(e.altKey)
-                  console.log(e.ctrlKey)
-                  console.log(e.shiftKey)
-                  console.log(e.key.charAt)
-                }}
               >
                 <div className="flex items-center">
                   QTY
@@ -335,13 +311,6 @@ export default function ManageListingsClient({ initialListings }: ManageListings
                 scope="col" 
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                 onClick={() => handleSort('created_at')}
-                onKeyUp={(e) => {
-                  e.preventDefault();
-                  console.log(e.altKey)
-                  console.log(e.ctrlKey)
-                  console.log(e.shiftKey)
-                  console.log(e.key.charAt)
-                }}
               >
                 <div className="flex items-center">
                   Created
@@ -391,7 +360,7 @@ export default function ManageListingsClient({ initialListings }: ManageListings
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">${listing.price.toFixed(2)}</div>
+                    <div className="text-sm text-gray-900">${Number(listing.price).toFixed(2)}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{listing.quantity}</div>
@@ -521,4 +490,5 @@ export default function ManageListingsClient({ initialListings }: ManageListings
         </div>
       )}
     </div>
-)}
+  );
+}

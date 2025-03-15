@@ -60,10 +60,17 @@ export default async function ListingPage({ params }: { params: { id: string } }
     .single();
 
   // Get the listing's categories
-  const { data: categories } = await supabase
+  const { data: categoryData } = await supabase
     .from('listing_categories')
     .select('categories(id, name)')
     .eq('listing_id', id);
+
+  // Format categories for easier use
+  const categories = categoryData ? 
+    categoryData.map(item => ({
+      id: item.categories.id,
+      name: item.categories.name
+    })) : [];
 
   // Fetch related listings (same category or from same store)
   const relatedListingsResult = await getRelatedListings(id);
@@ -139,13 +146,13 @@ export default async function ListingPage({ params }: { params: { id: string } }
             )}
             
             <div className="mt-4 text-2xl font-bold text-purple-900">
-              ${Number.parseFloat(listing.price.toString()).toFixed(2)}
+              ${typeof listing.price === 'number' ? listing.price.toFixed(2) : Number(listing.price).toFixed(2)}
             </div>
             
             {shipping && (
               <p className="text-sm text-gray-600 mt-1">
                 {shipping.flat_rate > 0 
-                  ? `+ ${shipping.flat_rate.toFixed(2)} shipping` 
+                  ? `+ $${shipping.flat_rate.toFixed(2)} shipping` 
                   : 'Free shipping'}
               </p>
             )}
@@ -155,11 +162,11 @@ export default async function ListingPage({ params }: { params: { id: string } }
               <div className="mt-4 flex flex-wrap gap-2">
                 {categories.map((cat) => (
                   <Link 
-                    key={cat.categories.id}
-                    href={`/category/${cat.categories.id}`}
+                    key={cat.id}
+                    href={`/category/${cat.id}`}
                     className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
                   >
-                    {cat.categories.name}
+                    {cat.name}
                   </Link>
                 ))}
               </div>
@@ -211,3 +218,4 @@ export default async function ListingPage({ params }: { params: { id: string } }
       )}
     </div>
   );
+}

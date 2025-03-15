@@ -2,46 +2,8 @@
 'use server';
 
 import { supabase } from '@/lib/supabase';
-
-export type Listing = {
-    id: string;
-    name: string;
-    description: string | null;
-    price: number;
-    store_id: string;
-    category_id?: string | null;
-    image_url?: string | null;
-    status?: string;
-    stores?: {
-        id: string;
-        name: string;
-        slug: string;
-        user_id: string;
-    };
-    created_at: string;
-    updated_at: string;
-};
-
-export type FetchListingsOptions = {
-    storeId?: string;
-    categoryId?: string;
-    limit?: number;
-    offset?: number;
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-    search?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    status?: string;
-};
-
-export type ActionResponse<T = unknown> = {
-    success: boolean;
-    message?: string;
-    error?: string;
-    data?: T;
-    count?: number;
-};
+import type { FetchListingsOptions, Listing } from '@/types/listing';
+import type { ActionResponse } from '@/types/common';
 
 /**
  * Fetch listings with filters and pagination
@@ -74,7 +36,23 @@ export async function fetchListings(options: FetchListingsOptions = {}): Promise
         }
 
         if (categoryId) {
-            query = query.eq('category_id', categoryId);
+            // We need to use a subquery for filtering by category since we're using a junction table
+            const { data: listingIds } = await supabase
+                .from('listing_categories')
+                .select('listing_id')
+                .eq('category_id', categoryId);
+
+            if (listingIds && listingIds.length > 0) {
+                const ids = listingIds.map(item => item.listing_id);
+                query = query.in('id', ids);
+            } else {
+                // No listings in this category, return empty result
+                return {
+                    success: true,
+                    data: [],
+                    count: 0
+                };
+            }
         }
 
         if (status) {
@@ -90,12 +68,8 @@ export async function fetchListings(options: FetchListingsOptions = {}): Promise
         }
 
         if (search) {
-            // Basic search on the name field
+            // Use the built-in text search for basic search functionality
             query = query.ilike('name', `%${search}%`);
-
-            // For more advanced search, we would use the search_vector column
-            // that we created in our migration, but that requires a different approach
-            // with RPC calls that's beyond the scope of this simple example
         }
 
         const { data, error, count } = await query;
@@ -119,14 +93,20 @@ export async function fetchListings(options: FetchListingsOptions = {}): Promise
  * Get featured listings (newest active listings)
  */
 export async function getFeaturedListings(limit = 4): Promise<ActionResponse<Listing[]>> {
-    return fetchListings({ limit, sortBy: 'created_at', sortOrder: 'desc', status: 'active' });
+    return fetchListings({
+        limit,
+        sortBy: 'created_at',
+        sortOrder: 'desc',
+        status: 'active'
+    });
 }
 
 /**
- * Get a single listing by ID
+ * Get a single listing by ID with full details
  */
 export async function getListingById(listingId: string): Promise<ActionResponse<Listing>> {
     try {
+        // Get the main listing data
         const { data, error } = await supabase
             .from('listings')
             .select('*, stores(id, name, slug, user_id)')
@@ -135,9 +115,37 @@ export async function getListingById(listingId: string): Promise<ActionResponse<
 
         if (error) throw new Error(error.message);
 
+        // Get categories for the listing
+        const { data: categories } = await supabase
+            .from('listing_categories')
+            .select('categories(id, name)')
+            .eq('listing_id', listingId);
+
+        // Get all images for the listing
+        const { data: images } = await supabase
+            .from('listing_images')
+            .select('image_url, display_order')
+            .eq('listing_id', listingId)
+            .order('display_order');
+
+        // Get shipping info
+        const { data: shipping } = await supabase
+            .from('listing_shipping')
+            .select('*')
+            .eq('listing_id', listingId)
+            .single();
+
+        // Combine the data
+        const enrichedListing = {
+            ...data,
+            categories: categories ? categories.map(c => c.categories) : [],
+            images: images ? images.map(i => i.image_url) : [],
+            shipping: shipping || null
+        };
+
         return {
             success: true,
-            data: data as Listing
+            data: enrichedListing as Listing
         };
     } catch (error) {
         return {
@@ -149,8 +157,6 @@ export async function getListingById(listingId: string): Promise<ActionResponse<
 
 /**
  * Search listings with full text search
- * Note: For basic search, we use the ilike operator
- * For more advanced search, we would use the search_vector column
  */
 export async function searchListings(query: string, limit = 10): Promise<ActionResponse<Listing[]>> {
     return fetchListings({ search: query, limit });
@@ -171,21 +177,52 @@ export async function getRelatedListings(listingId: string, limit = 4): Promise<
         // First, get the current listing to find its category and store
         const { data: listing, error: listingError } = await supabase
             .from('listings')
-            .select('category_id, store_id')
+            .select('store_id')
             .eq('id', listingId)
             .single();
 
         if (listingError) throw new Error(listingError.message);
 
-        // Then fetch related listings based on category or store
-        const { data: relatedListings, error: relatedError } = await supabase
+        // Get the categories of this listing
+        const { data: listingCategories } = await supabase
+            .from('listing_categories')
+            .select('category_id')
+            .eq('listing_id', listingId);
+
+        const categoryIds = listingCategories ? listingCategories.map(lc => lc.category_id) : [];
+
+        // Find listings with the same categories or from the same store, but not the current listing
+        let query = supabase
             .from('listings')
             .select('*, stores(id, name, slug, user_id)')
             .neq('id', listingId) // Exclude the current listing
-            .eq('status', 'active')
-            .or(`category_id.eq.${listing.category_id},store_id.eq.${listing.store_id}`)
-            .order('created_at', { ascending: false })
+            .eq('status', 'active') // Only active listings
             .limit(limit);
+
+        if (categoryIds.length > 0) {
+            // Get listings that share categories with our listing
+            const { data: relatedByCategory } = await supabase
+                .from('listing_categories')
+                .select('listing_id')
+                .in('category_id', categoryIds)
+                .neq('listing_id', listingId);
+
+            const relatedListingIds = relatedByCategory ?
+                relatedByCategory.map(item => item.listing_id) : [];
+
+            if (relatedListingIds.length > 0) {
+                // We have listings with same categories
+                query = query.in('id', relatedListingIds);
+            } else {
+                // No category matches, fall back to just store-based relations
+                query = query.eq('store_id', listing.store_id);
+            }
+        } else {
+            // No categories for this listing, use store-based relations
+            query = query.eq('store_id', listing.store_id);
+        }
+
+        const { data: relatedListings, error: relatedError } = await query;
 
         if (relatedError) throw new Error(relatedError.message);
 

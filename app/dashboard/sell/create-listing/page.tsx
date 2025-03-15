@@ -1,22 +1,18 @@
+// app/dashboard/sell/create-listing/page.tsx
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import Link from 'next/link';
-// import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
-import ManageListingsClient from '@/components/listings/ManageListingsClient';
-import { 
-  PlusCircle,
-  AlertCircle,
-} from 'lucide-react';
+import CreateListingForm from '@/components/listings/CreateListingForm';
+import { getMainCategories } from '@/actions/categories';
 
 export const metadata = {
-  title: 'Sell | Dashboard',
-  description: 'Manage your magical listings',
+  title: 'Create Listing | Dashboard',
+  description: 'Create a new magical listing',
 };
 
-export default async function SellPage() {
-  // Get the session server-side
+export default async function CreateListingPage() {
+  // Check if the user is authenticated
   const cookieStore = await cookies();
   const token = cookieStore.get('sb-auth-token')?.value;
 
@@ -33,7 +29,7 @@ export default async function SellPage() {
   // Check if the user has a store
   const { data: store, error: storeError } = await supabase
     .from('stores')
-    .select('id, name, slug')
+    .select('id, name')
     .eq('user_id', user.id)
     .single();
 
@@ -42,84 +38,17 @@ export default async function SellPage() {
     redirect('/dashboard/create-store');
   }
 
-  // Get the user's listings
-  const { data: listings, error: listingsError } = await supabase
-    .from('listings')
-    .select(`
-      id,
-      name,
-      price,
-      quantity,
-      status,
-      image_url,
-      created_at,
-      updated_at
-    `)
-    .eq('store_id', store.id)
-    .order('created_at', { ascending: false });
-
-  // Handle error gracefully
-  if (listingsError) {
-    console.error('Error fetching listings:', listingsError);
-  }
+  // Get all categories for the form
+  const categoriesResult = await getMainCategories();
+  const categories = categoriesResult.success ? categoriesResult.data : [];
 
   return (
-    <DashboardPageWrapper pageName="Your Magical Listings">
-      <div className="space-y-6">
-        {/* Store Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                {store.name}
-              </h2>
-              <Link 
-                href={`/store/${store.slug}`} 
-                target="_blank"
-                className="text-sm text-purple-700 hover:text-purple-900"
-              >
-                View Your Store →
-              </Link>
-            </div>
-            
-            <Link 
-              href="/dashboard/sell/create-listing"
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md flex items-center"
-            >
-              <PlusCircle size={16} className="mr-1" />
-              Add New Listing
-            </Link>
-          </div>
-        </div>
-
-        {/* Listings Table */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Listings</h3>
-            
-            {!listings || listings.length === 0 ? (
-              <div className="py-12 text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 mb-4">
-                  <AlertCircle size={32} className="text-purple-600" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Listings Yet</h3>
-                <p className="text-gray-600 max-w-md mx-auto mb-6">
-                  Your magical shop is empty. Start adding magical items that you want to sell.
-                </p>
-                <Link 
-                  href="/dashboard/sell/create-listing"
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-md inline-flex items-center"
-                >
-                  <PlusCircle size={16} className="mr-2" />
-                  Create Your First Listing
-                </Link>
-              </div>
-            ) : (
-              <ManageListingsClient initialListings={listings} />
-            )}
-          </div>
-        </div>
-      </div>
+    <DashboardPageWrapper pageName="Create New Listing">
+      <CreateListingForm 
+        storeId={store.id}
+        storeName={store.name}
+        categories={categories}
+      />
     </DashboardPageWrapper>
   );
 }
