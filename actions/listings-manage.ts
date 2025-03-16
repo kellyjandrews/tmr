@@ -233,7 +233,7 @@ export async function updateListing(formData: ListingFormData): Promise<ActionRe
 
 
         // Check if the user owns the store
-        if (listingData.stores.user_id !== userData.user.id) {
+        if (listingData.stores[0].user_id !== userData.user.id) {
             return {
                 success: false,
                 error: 'You do not have permission to update this listing'
@@ -408,7 +408,7 @@ export async function deleteListing(listingId: string): Promise<ActionResponse> 
         }
 
         // Check if the user owns the store
-        if (listingData.stores.user_id !== userData.user.id) {
+        if (listingData.stores[0].user_id !== userData.user.id) {
             return {
                 success: false,
                 error: 'You do not have permission to delete this listing'
@@ -497,7 +497,7 @@ export async function changeListingStatus(
         }
 
         // Check if the user owns the store
-        if (listingData.stores.user_id !== userData.user.id) {
+        if (listingData.stores[0].user_id !== userData.user.id) {
             return {
                 success: false,
                 error: 'You do not have permission to update this listing'

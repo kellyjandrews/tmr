@@ -6,13 +6,15 @@ import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import EditListingForm from '@/components/listings/EditListingForm';
 import { getListingForEdit } from '@/actions/listings-manage';
 import { getMainCategories } from '@/actions/categories';
+import type { ListingFormData } from '@/types/listing';
+import type { Category } from '@/types/category';
 
 export const metadata = {
   title: 'Edit Listing | Dashboard',
   description: 'Edit your magical listing',
 };
 
-export default async function EditListingPage({ params }: { params: { id: string } }) {
+export default async function EditListingPage({ params }:{ params: Promise<{ id: string }> }) {
   // Check if the user is authenticated
   const cookieStore = await cookies();
   const token = cookieStore.get('sb-auth-token')?.value;
@@ -28,7 +30,7 @@ export default async function EditListingPage({ params }: { params: { id: string
   }
 
   // Get the listing to edit
-  const { id } = params;
+  const { id } = await params;
   const listingResult = await getListingForEdit(id);
 
   if (!listingResult.success || !listingResult.data) {
@@ -49,12 +51,15 @@ export default async function EditListingPage({ params }: { params: { id: string
 
   // Get all categories for the form
   const categoriesResult = await getMainCategories();
-  const categories = categoriesResult.success ? categoriesResult.data : [];
+  const categories = categoriesResult.success ? (categoriesResult.data as Category[]) : [];
+
+   // Ensure listingResult.data is correctly typed as ListingFormData
+   const listingData = listingResult.data as ListingFormData;
 
   return (
     <DashboardPageWrapper pageName="Edit Listing">
       <EditListingForm 
-        listing={listingResult.data}
+        listing={listingData}
         storeId={store.id}
         storeName={store.name}
         categories={categories}

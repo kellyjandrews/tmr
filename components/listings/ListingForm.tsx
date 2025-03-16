@@ -17,7 +17,7 @@ import {
   Tag
 } from 'lucide-react';
 import type { Category } from '@/actions/categories';
-import type { ListingFormData } from '@/actions/listings-manage';
+import type { ListingFormData } from '@/types';
 
 type FormSection = 'basic' | 'description' | 'images' | 'categories' | 'pricing' | 'status';
 
@@ -70,7 +70,7 @@ export default function ListingForm({
   // Handle number field changes
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const numValue = value === '' ? 0 : parseFloat(value);
+    const numValue = value === '' ? 0 : Number.parseFloat(value);
     setFormData(prev => ({ ...prev, [name]: numValue }));
     if (errors[name]) {
       setErrors(prev => {
@@ -101,7 +101,6 @@ export default function ListingForm({
     if (errors.categories) {
       setErrors(prev => {
         const newErrors = { ...prev };
-        delete newErrors.categories;
         return newErrors;
       });
     }
@@ -135,7 +134,6 @@ export default function ListingForm({
       if (errors.images) {
         setErrors(prev => {
           const newErrors = { ...prev };
-          delete newErrors.images;
           return newErrors;
         });
       }

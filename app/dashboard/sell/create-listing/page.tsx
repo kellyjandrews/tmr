@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import CreateListingForm from '@/components/listings/CreateListingForm';
 import { getMainCategories } from '@/actions/categories';
+import type { Category } from '@/types/category';
 
 export const metadata = {
   title: 'Create Listing | Dashboard',
@@ -40,7 +41,7 @@ export default async function CreateListingPage() {
 
   // Get all categories for the form
   const categoriesResult = await getMainCategories();
-  const categories = categoriesResult.success ? categoriesResult.data : [];
+  const categories = categoriesResult.success ? (categoriesResult.data as Category[]) : [];
 
   return (
     <DashboardPageWrapper pageName="Create New Listing">

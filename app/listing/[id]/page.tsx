@@ -7,10 +7,15 @@ import ListingList from '@/components/ListingList';
 import { supabase } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
+
+interface Category {
+  id: number;
+  name: string;
+}
  
 // Generate metadata for the page
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  const { id } = params;
+export async function generateMetadata({ params }: { params: Promise<{ id: string } >}) {
+  const { id } = await params;
   const listingResult = await getListingById(id);
   
   if (!listingResult.success || !listingResult.data) {
@@ -28,8 +33,8 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   };
 }
 
-export default async function ListingPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   
   // Fetch the listing data
   const listingResult = await getListingById(id);
@@ -63,14 +68,16 @@ export default async function ListingPage({ params }: { params: { id: string } }
   const { data: categoryData } = await supabase
     .from('listing_categories')
     .select('categories(id, name)')
-    .eq('listing_id', id);
+    .eq('listing_id', id)
 
   // Format categories for easier use
-  const categories = categoryData ? 
-    categoryData.map(item => ({
-      id: item.categories.id,
-      name: item.categories.name
-    })) : [];
+  const categories: Category[] = (categoryData ? 
+    categoryData.flatMap(({categories}) => 
+      categories.map((category) => ({
+        id: category.id,
+        name: category.name
+      }))
+    ) : []);
 
   // Fetch related listings (same category or from same store)
   const relatedListingsResult = await getRelatedListings(id);
@@ -117,7 +124,7 @@ export default async function ListingPage({ params }: { params: { id: string } }
               <div className="flex space-x-2 overflow-x-auto">
                 {images.map((image, index) => (
                   <div 
-                    key={index}
+                    key={`${image.display_order}-${index}`}
                     className="w-20 h-20 flex-shrink-0 bg-purple-50 rounded-md overflow-hidden relative"
                   >
                     <Image 
@@ -207,7 +214,7 @@ export default async function ListingPage({ params }: { params: { id: string } }
       </div>
       
       {/* Related Listings */}
-      {relatedListings.length > 0 && (
+      {relatedListings && relatedListings.length > 0 && (
         <div className="mt-12">
           <ListingList
             title="You May Also Like"

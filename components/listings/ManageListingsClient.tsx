@@ -61,11 +61,9 @@ export default function ManageListingsClient({ initialListings }: ManageListings
     result.sort((a, b) => {
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
-     
-      if (aValue === null || bValue === null) {
-        return 0;
-      }
 
+      if (!aValue || !bValue) return 0;
+     
       if (aValue < bValue) {
         return sortConfig.direction === 'asc' ? -1 : 1;
       }
@@ -280,6 +278,13 @@ export default function ManageListingsClient({ initialListings }: ManageListings
                 scope="col" 
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                 onClick={() => handleSort('price')}
+                onKeyUp={(e) => {
+                  e.preventDefault();
+                  console.log(e.altKey)
+                  console.log(e.ctrlKey)
+                  console.log(e.shiftKey)
+                  console.log(e.key.charAt)
+                }}
               >
                 <div className="flex items-center">
                   Price
@@ -294,6 +299,13 @@ export default function ManageListingsClient({ initialListings }: ManageListings
                 scope="col" 
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                 onClick={() => handleSort('quantity')}
+                onKeyUp={(e) => {
+                  e.preventDefault();
+                  console.log(e.altKey)
+                  console.log(e.ctrlKey)
+                  console.log(e.shiftKey)
+                  console.log(e.key.charAt)
+                }}
               >
                 <div className="flex items-center">
                   QTY
@@ -311,6 +323,13 @@ export default function ManageListingsClient({ initialListings }: ManageListings
                 scope="col" 
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                 onClick={() => handleSort('created_at')}
+                onKeyUp={(e) => {
+                  e.preventDefault();
+                  console.log(e.altKey)
+                  console.log(e.ctrlKey)
+                  console.log(e.shiftKey)
+                  console.log(e.key.charAt)
+                }}
               >
                 <div className="flex items-center">
                   Created
