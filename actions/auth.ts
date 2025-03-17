@@ -133,5 +133,5 @@ export async function logoutUser(): Promise<void> {
     const cookieStore = await cookies();
     cookieStore.delete('sb-auth-token');
 
-    redirect('/');
+    redirect('/login');
 }

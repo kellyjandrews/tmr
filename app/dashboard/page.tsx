@@ -1,6 +1,6 @@
 // app/dashboard/page.tsx
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/clientSide';
+import { createSession } from '@/lib/supabase/serverSide';
+
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import DashboardHero from '@/components/dashboard/DashboardHero';
 
@@ -10,25 +10,23 @@ export const metadata = {
 };
 
 export default async function DashboardPage() {
-  // Get the session server-side
-  const supabase = createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
+  const supabase = await createSession();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) throw new Error;
   
-  if (!user) {
-    redirect('/login');
-  }
+  const user = data.user;
+
 
   // Fetch user profile if available
   const { data: profile } = await supabase
     .from('profiles')
     .select('full_name')
-    .eq('id', user.id)
+    .eq('id', user?.id)
     .single();
 
   const userData = {
-    id: user.id,
-    email: user.email,
+    email: user?.email,
+    id: user?.id,
     name: profile?.full_name || null,
   };
 

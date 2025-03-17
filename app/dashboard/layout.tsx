@@ -1,22 +1,14 @@
 // app/dashboard/layout.tsx
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/clientSide';
+// import { createSession } from '@/lib/supabase/serverSide';
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Get the session server-side
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    redirect('/login');
-  }
-
   return (
+    // You could add a context provider here if you want to share user data,
+    // but for now we'll just pass it through as props where needed
     <>
       {children}
     </>

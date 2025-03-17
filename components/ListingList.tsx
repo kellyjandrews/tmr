@@ -6,8 +6,6 @@ import Image from 'next/image';
 import { createClient, supabaseLoader } from '@/lib/supabase/clientSide';
 import type { Listing } from '@/types/listing';
 
-const supabase = createClient();
-
 type ListingListProps = {
   title?: string;
   storeId?: string;
@@ -32,6 +30,7 @@ export default function ListingList({
   const [listings, setListings] = useState<Listing[]>(initialListings || []);
   const [loading, setLoading] = useState(!initialListings);
   const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
 
   useEffect(() => {
     // If we have initialListings, don't fetch more
@@ -90,7 +89,7 @@ export default function ListingList({
     };
 
     fetchListings();
-  }, [storeId, categoryId, limit, initialListings]);
+  }, [supabase, storeId, categoryId, limit, initialListings]);
 
   if (loading) {
     return (

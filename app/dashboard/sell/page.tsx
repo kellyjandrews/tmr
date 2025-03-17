@@ -1,7 +1,7 @@
 // app/dashboard/sell/page.tsx
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/clientSide';
+import { createSession } from '@/lib/supabase/serverSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import ManageListingsClient from '@/components/listings/ManageListingsClient';
 import { PlusCircle, AlertCircle } from 'lucide-react';
@@ -14,13 +14,11 @@ export const metadata = {
 
 export default async function SellPage() {
   // Get the session server-side
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
+  const supabase = await createSession();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) throw new Error;
   
-  if (!user) {
-    redirect('/login');
-  }
+  const user = data.user;
 
   // Check if the user has a store
   const { data: store, error: storeError } = await supabase

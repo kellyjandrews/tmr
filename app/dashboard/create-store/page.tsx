@@ -10,13 +10,12 @@ export const metadata = {
 };
 
 export default async function CreateStorePage() {
-  // Check if the user is authenticated
+  // Get the session server-side
   const supabase = await createSession();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) throw new Error;
   
-  if (!user) {
-    redirect('/login');
-  }
+  const user = data.user;
 
   // Check if the user already has a store
   const { data: existingStore } = await supabase

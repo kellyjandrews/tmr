@@ -14,14 +14,13 @@ export const metadata = {
 };
 
 export default async function EditListingPage({ params }:{ params: Promise<{ id: string }> }) {
-  // Check if the user is authenticated
-const supabase = await createSession();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Get the session server-side
+  const supabase = await createSession();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) throw new Error;
   
-  if (!user) {
-    redirect('/login');
-  }
-
+  const user = data.user;
+  
   // Get the listing to edit
   const { id } = await params;
   const listingResult = await getListingForEdit(id);

@@ -22,23 +22,19 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   // Get current user for the header
+  // Get the session server-side
   const supabase = await createSession();
-
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  console.log(userData)
-  if (userError || !userData.user) {
-      return {
-          success: false,
-          error: userError?.message || 'Failed to authenticate user'
-      };
-  }
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) throw new Error;
+  
+  const user = data.user;
  
 
   return (
     <html lang="en">
       <body className={inter.className}>
         <div className="flex flex-col w-full">
-          <Header user={userData.user} />
+          <Header user={user} />
           <main className="flex-grow">
             {children}
           </main>

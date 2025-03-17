@@ -18,9 +18,8 @@ export function createClient() {
 }
 
 // Supabase client side image loader - use with <Image loader=supabaseLoader
-export function supabaseLoader({ src, width, quality }: ImageLoaderProps) {
-    const url = new URL(`${supabaseUrl}/${src}?w=${width}&q=${quality || 75}`)
-    url.searchParams.set('width', width.toString())
+export function supabaseLoader({ src, quality }: ImageLoaderProps) {
+    const url = new URL(`${src}?q=${quality || 75}`)
     url.searchParams.set('quality', (quality || 75).toString())
     return url.href
 }

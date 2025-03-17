@@ -16,8 +16,8 @@ export default function ShopAdminPage() {
       try {
         setLoading(true);
         // Use our new direct server action
-        const { getUserStoreDirect } = await import('@/app/dashboard/actions');
-        const storeResult = await getUserStoreDirect();
+        const { getUserStore } = await import('@/actions/store');
+        const storeResult = await getUserStore();
         
         if (storeResult.success && storeResult.data) {
           setStore(storeResult.data as Store);
