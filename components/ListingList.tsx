@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabase';
+import { createClient, supabaseLoader } from '@/lib/supabase/clientSide';
 import type { Listing } from '@/types/listing';
+
+const supabase = createClient();
 
 type ListingListProps = {
   title?: string;
@@ -129,7 +131,8 @@ export default function ListingList({
               <div key={listing.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                 <div className="h-48 bg-purple-100 flex items-center justify-center relative">
                   {listing.image_url ? (
-                    <Image 
+                    <Image
+                      loader={supabaseLoader}
                       src={listing.image_url} 
                       alt={listing.name} 
                       fill

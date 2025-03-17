@@ -1,7 +1,4 @@
 // app/dashboard/messages/page.tsx
-import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 
 export const metadata = {
@@ -10,20 +7,6 @@ export const metadata = {
 };
 
 export default async function MessagesPage() {
-  // Get the session server-side
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-auth-token')?.value;
-
-  if (!token) {
-    redirect('/login');
-  }
-
-  const { data: { user } } = await supabase.auth.getUser(token);
-  
-  if (!user) {
-    redirect('/login');
-  }
-
   return (
     <DashboardPageWrapper pageName="Messages">
       <div className="bg-white rounded-lg shadow-sm p-6 h-[calc(100vh-180px)]">

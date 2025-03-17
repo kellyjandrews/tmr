@@ -1,7 +1,4 @@
 // app/dashboard/collection/page.tsx
-import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 
 export const metadata = {
@@ -10,19 +7,7 @@ export const metadata = {
 };
 
 export default async function CollectionPage() {
-  // Get the session server-side
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-auth-token')?.value;
-
-  if (!token) {
-    redirect('/login');
-  }
-
-  const { data: { user } } = await supabase.auth.getUser(token);
   
-  if (!user) {
-    redirect('/login');
-  }
 
   return (
     <DashboardPageWrapper pageName="Collection">

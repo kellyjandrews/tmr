@@ -1,7 +1,4 @@
 // app/dashboard/buy/page.tsx
-import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -25,18 +22,8 @@ export const metadata = {
 
 export default async function BuyPage() {
   // Get the session server-side
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-auth-token')?.value;
-
-  if (!token) {
-    redirect('/login');
-  }
-
-  const { data: { user } } = await supabase.auth.getUser(token);
   
-  if (!user) {
-    redirect('/login');
-  }
+
 
   // Placeholder purchase data
   const purchases = [

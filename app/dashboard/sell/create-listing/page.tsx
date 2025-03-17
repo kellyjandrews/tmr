@@ -1,7 +1,6 @@
 // app/dashboard/sell/create-listing/page.tsx
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase';
+import { createSession } from '@/lib/supabase/serverSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import CreateListingForm from '@/components/listings/CreateListingForm';
 import { getMainCategories } from '@/actions/categories';
@@ -14,14 +13,8 @@ export const metadata = {
 
 export default async function CreateListingPage() {
   // Check if the user is authenticated
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-auth-token')?.value;
-
-  if (!token) {
-    redirect('/login');
-  }
-
-  const { data: { user } } = await supabase.auth.getUser(token);
+const supabase = await createSession();
+  const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     redirect('/login');

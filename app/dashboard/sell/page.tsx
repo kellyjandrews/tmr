@@ -1,8 +1,7 @@
 // app/dashboard/sell/page.tsx
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/clientSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import ManageListingsClient from '@/components/listings/ManageListingsClient';
 import { PlusCircle, AlertCircle } from 'lucide-react';
@@ -15,14 +14,9 @@ export const metadata = {
 
 export default async function SellPage() {
   // Get the session server-side
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-auth-token')?.value;
+  const supabase = await createClient();
 
-  if (!token) {
-    redirect('/login');
-  }
-
-  const { data: { user } } = await supabase.auth.getUser(token);
+  const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     redirect('/login');

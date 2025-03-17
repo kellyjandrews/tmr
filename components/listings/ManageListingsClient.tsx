@@ -19,6 +19,7 @@ import {
   X,
   AlertTriangle
 } from 'lucide-react';
+import {supabaseLoader} from '@/lib/supabase/clientSide';
 import { changeListingStatus, deleteListing } from '@/actions/listings-manage';
 import type { Listing } from '@/types/listing';
 
@@ -356,6 +357,7 @@ export default function ManageListingsClient({ initialListings }: ManageListings
                       <div className="h-10 w-10 flex-shrink-0 bg-purple-100 rounded-md overflow-hidden">
                         {listing.image_url ? (
                           <Image 
+                            loader={supabaseLoader}
                             src={listing.image_url} 
                             alt={listing.name}
                             width={40}

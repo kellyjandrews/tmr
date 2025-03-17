@@ -2,8 +2,7 @@
 'use server';
 
 import { z } from 'zod';
-import { supabase } from '@/lib/supabase';
-import { cookies } from 'next/headers';
+import { createSession } from '@/lib/supabase/serverSide';
 import { revalidatePath } from 'next/cache';
 import type { ListingFormData } from '@/types/listing';
 import type { ActionResponse } from '@/types/common';
@@ -26,22 +25,14 @@ const listingSchema = z.object({
  * Create a new listing
  */
 export async function createListing(formData: ListingFormData): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         // Validate form data
         const validatedData = listingSchema.parse(formData);
 
-        // Get current user and verify they own the store
-        const cookieStore = await cookies();
-        const token = cookieStore.get('sb-auth-token')?.value;
+        const { data: userData } = await supabase.auth.getUser();
 
-        if (!token) {
-            return {
-                success: false,
-                error: 'You must be logged in to create a listing'
-            };
-        }
-
-        const { data: userData } = await supabase.auth.getUser(token);
         if (!userData.user) {
             return {
                 success: false,
@@ -187,6 +178,8 @@ export async function createListing(formData: ListingFormData): Promise<ActionRe
  * Update an existing listing
  */
 export async function updateListing(formData: ListingFormData): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         // Validate form data
         const validatedData = listingSchema.parse(formData);
@@ -199,17 +192,7 @@ export async function updateListing(formData: ListingFormData): Promise<ActionRe
         }
 
         // Get current user
-        const cookieStore = await cookies();
-        const token = cookieStore.get('sb-auth-token')?.value;
-
-        if (!token) {
-            return {
-                success: false,
-                error: 'You must be logged in to update a listing'
-            };
-        }
-
-        const { data: userData } = await supabase.auth.getUser(token);
+        const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) {
             return {
                 success: false,
@@ -366,6 +349,8 @@ export async function updateListing(formData: ListingFormData): Promise<ActionRe
  * Delete a listing
  */
 export async function deleteListing(listingId: string): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         if (!listingId) {
             return {
@@ -375,17 +360,7 @@ export async function deleteListing(listingId: string): Promise<ActionResponse> 
         }
 
         // Get current user
-        const cookieStore = await cookies();
-        const token = cookieStore.get('sb-auth-token')?.value;
-
-        if (!token) {
-            return {
-                success: false,
-                error: 'You must be logged in to delete a listing'
-            };
-        }
-
-        const { data: userData } = await supabase.auth.getUser(token);
+        const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) {
             return {
                 success: false,
@@ -455,6 +430,8 @@ export async function changeListingStatus(
     listingId: string,
     status: 'draft' | 'active' | 'hidden' | 'sold'
 ): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         if (!listingId) {
             return {
@@ -464,17 +441,7 @@ export async function changeListingStatus(
         }
 
         // Get current user
-        const cookieStore = await cookies();
-        const token = cookieStore.get('sb-auth-token')?.value;
-
-        if (!token) {
-            return {
-                success: false,
-                error: 'You must be logged in to update a listing'
-            };
-        }
-
-        const { data: userData } = await supabase.auth.getUser(token);
+        const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) {
             return {
                 success: false,
@@ -540,6 +507,8 @@ export async function changeListingStatus(
  * Get a listing with all related data for editing
  */
 export async function getListingForEdit(listingId: string): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         if (!listingId) {
             return {
@@ -549,17 +518,7 @@ export async function getListingForEdit(listingId: string): Promise<ActionRespon
         }
 
         // Get current user
-        const cookieStore = await cookies();
-        const token = cookieStore.get('sb-auth-token')?.value;
-
-        if (!token) {
-            return {
-                success: false,
-                error: 'You must be logged in to view this listing'
-            };
-        }
-
-        const { data: userData } = await supabase.auth.getUser(token);
+        const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) {
             return {
                 success: false,
@@ -663,6 +622,8 @@ export async function getListingForEdit(listingId: string): Promise<ActionRespon
  * Upload an image to Supabase storage
  */
 export async function uploadListingImage(file: File): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         if (!file) {
             return {
@@ -672,17 +633,7 @@ export async function uploadListingImage(file: File): Promise<ActionResponse> {
         }
 
         // Get current user
-        const cookieStore = await cookies();
-        const token = cookieStore.get('sb-auth-token')?.value;
-
-        if (!token) {
-            return {
-                success: false,
-                error: 'You must be logged in to upload images'
-            };
-        }
-
-        const { data: userData } = await supabase.auth.getUser(token);
+        const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) {
             return {
                 success: false,
@@ -730,6 +681,8 @@ export async function uploadListingImage(file: File): Promise<ActionResponse> {
  * Delete an image from Supabase storage
  */
 export async function deleteListingImage(imageUrl: string): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         if (!imageUrl) {
             return {
@@ -739,17 +692,7 @@ export async function deleteListingImage(imageUrl: string): Promise<ActionRespon
         }
 
         // Get current user
-        const cookieStore = await cookies();
-        const token = cookieStore.get('sb-auth-token')?.value;
-
-        if (!token) {
-            return {
-                success: false,
-                error: 'You must be logged in to delete images'
-            };
-        }
-
-        const { data: userData } = await supabase.auth.getUser(token);
+        const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) {
             return {
                 success: false,

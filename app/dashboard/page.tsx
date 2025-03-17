@@ -1,7 +1,6 @@
 // app/dashboard/page.tsx
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/clientSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import DashboardHero from '@/components/dashboard/DashboardHero';
 
@@ -12,14 +11,9 @@ export const metadata = {
 
 export default async function DashboardPage() {
   // Get the session server-side
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-auth-token')?.value;
+  const supabase = createClient();
 
-  if (!token) {
-    redirect('/login');
-  }
-
-  const { data: { user } } = await supabase.auth.getUser(token);
+  const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     redirect('/login');

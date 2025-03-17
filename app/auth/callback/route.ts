@@ -1,8 +1,9 @@
 // app/auth/callback/route.ts
 import { type NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createSession } from '@/lib/supabase/serverSide';
 
 export async function GET(request: NextRequest) {
+    const supabase = await createSession();
     const requestUrl = new URL(request.url);
     const code = requestUrl.searchParams.get('code');
 

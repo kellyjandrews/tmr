@@ -1,7 +1,5 @@
 // app/dashboard/buy/order/[id]/page.tsx
-import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase';
+
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -24,18 +22,6 @@ export const metadata = {
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   // Get the session server-side
   const {id} =  await params
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-auth-token')?.value;
-
-  if (!token) {
-    redirect('/login');
-  }
-
-  const { data: { user } } = await supabase.auth.getUser(token);
-  
-  if (!user) {
-    redirect('/login');
-  }
 
   // In a real implementation, we'd fetch the order details from the database
   // For now, we'll use hardcoded data for the specific order ID

@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createSession } from '@/lib/supabase/serverSide';
 
 // Validation schema
 const registerSchema = z.object({
@@ -30,6 +30,8 @@ export type ActionResponse = {
  * Register a new user
  */
 export async function registerUser(formData: RegisterFormData): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         // Validate form data
         const validatedData = registerSchema.parse(formData);
@@ -83,6 +85,8 @@ export async function registerUser(formData: RegisterFormData): Promise<ActionRe
  * Log in a user
  */
 export async function loginUser(formData: { email: string; password: string }): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         const { email, password } = formData;
 
@@ -118,6 +122,8 @@ export async function loginUser(formData: { email: string; password: string }): 
  * Log out a user
  */
 export async function logoutUser(): Promise<void> {
+    const supabase = await createSession();
+
     try {
         await supabase.auth.signOut();
     } catch (error) {
@@ -127,5 +133,5 @@ export async function logoutUser(): Promise<void> {
     const cookieStore = await cookies();
     cookieStore.delete('sb-auth-token');
 
-    redirect('/login');
+    redirect('/');
 }

@@ -1,7 +1,6 @@
 // app/dashboard/layout.tsx
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/clientSide';
 
 export default async function DashboardLayout({
   children,
@@ -9,14 +8,9 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   // Get the session server-side
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-auth-token')?.value;
+  const supabase = await createClient()
 
-  if (!token) {
-    redirect('/login');
-  }
-
-  const { data: { user } } = await supabase.auth.getUser(token);
+  const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     redirect('/login');

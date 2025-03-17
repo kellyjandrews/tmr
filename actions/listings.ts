@@ -1,7 +1,7 @@
 // actions/listings.ts
 'use server';
 
-import { supabase } from '@/lib/supabase';
+import { createSession } from '@/lib/supabase/serverSide';
 import type { FetchListingsOptions, Listing } from '@/types/listing';
 import type { ActionResponse } from '@/types/common';
 
@@ -9,6 +9,8 @@ import type { ActionResponse } from '@/types/common';
  * Fetch listings with filters and pagination
  */
 export async function fetchListings(options: FetchListingsOptions = {}): Promise<ActionResponse<Listing[]>> {
+    const supabase = await createSession();
+
     try {
         const {
             storeId,
@@ -105,6 +107,8 @@ export async function getFeaturedListings(limit = 4): Promise<ActionResponse<Lis
  * Get a single listing by ID with full details
  */
 export async function getListingById(listingId: string): Promise<ActionResponse<Listing>> {
+    const supabase = await createSession();
+
     try {
         // Get the main listing data
         const { data, error } = await supabase
@@ -173,6 +177,8 @@ export async function getListingsByCategory(categoryId: string, limit = 10, offs
  * Get related listings (same category or from same store)
  */
 export async function getRelatedListings(listingId: string, limit = 4): Promise<ActionResponse<Listing[]>> {
+    const supabase = await createSession();
+
     try {
         // First, get the current listing to find its category and store
         const { data: listing, error: listingError } = await supabase

@@ -1,7 +1,7 @@
 // actions/categories.ts
 'use server';
 
-import { supabase } from '@/lib/supabase';
+import { createSession } from '@/lib/supabase/serverSide';
 
 export type Category = {
     id: string;
@@ -23,6 +23,8 @@ export type ActionResponse<T = unknown> = {
  * Fetch all main categories (those without a parent)
  */
 export async function getMainCategories(): Promise<ActionResponse<Category[]>> {
+    const supabase = await createSession();
+
     try {
         const { data, error } = await supabase
             .from('categories')
@@ -48,6 +50,8 @@ export async function getMainCategories(): Promise<ActionResponse<Category[]>> {
  * Fetch subcategories for a specific parent category
  */
 export async function getSubcategories(parentId: string): Promise<ActionResponse<Category[]>> {
+    const supabase = await createSession();
+
     try {
         const { data, error } = await supabase
             .from('categories')
@@ -73,6 +77,8 @@ export async function getSubcategories(parentId: string): Promise<ActionResponse
  * Fetch a specific category by ID
  */
 export async function getCategoryById(categoryId: string): Promise<ActionResponse<Category>> {
+    const supabase = await createSession();
+
     try {
         const { data, error } = await supabase
             .from('categories')

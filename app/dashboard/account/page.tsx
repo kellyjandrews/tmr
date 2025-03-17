@@ -1,7 +1,6 @@
 // app/dashboard/account/page.tsx
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase';
+import { createSession } from '@/lib/supabase/serverSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import AccountForm from '@/components/account/AccountForm';
 import type { UserProfile } from '@/types/user';
@@ -13,14 +12,9 @@ export const metadata = {
 
 export default async function AccountPage() {
   // Get the session server-side
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-auth-token')?.value;
-
-  if (!token) {
-    redirect('/login');
-  }
-
-  const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+  const supabase = await createSession()
+  
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
   
   if (userError || !user) {
     redirect('/login');

@@ -1,7 +1,6 @@
 // app/dashboard/sell/edit-listing/[id]/page.tsx
 import { redirect, notFound } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase';
+import { createSession } from '@/lib/supabase/serverSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import EditListingForm from '@/components/listings/EditListingForm';
 import { getListingForEdit } from '@/actions/listings-manage';
@@ -16,14 +15,8 @@ export const metadata = {
 
 export default async function EditListingPage({ params }:{ params: Promise<{ id: string }> }) {
   // Check if the user is authenticated
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-auth-token')?.value;
-
-  if (!token) {
-    redirect('/login');
-  }
-
-  const { data: { user } } = await supabase.auth.getUser(token);
+const supabase = await createSession();
+  const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     redirect('/login');

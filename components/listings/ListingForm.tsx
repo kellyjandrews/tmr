@@ -16,6 +16,7 @@ import {
   EyeOff,
   Tag
 } from 'lucide-react';
+import {supabaseLoader} from '@/lib/supabase/clientSide';
 import type { Category } from '@/actions/categories';
 import type { ListingFormData } from '@/types';
 
@@ -407,6 +408,7 @@ export default function ListingForm({
                     className="relative w-24 h-24 rounded-md overflow-hidden border border-gray-200"
                   >
                     <Image
+                      loader={supabaseLoader}
                       src={imageUrl}
                       alt={`Product image ${index + 1}`}
                       fill

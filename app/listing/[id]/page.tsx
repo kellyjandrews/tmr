@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getListingById, getRelatedListings } from '@/actions/listings';
 import ListingList from '@/components/ListingList';
-import { supabase } from '@/lib/supabase';
+import { createSession } from '@/lib/supabase/serverSide';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +17,7 @@ interface Category {
 export async function generateMetadata({ params }: { params: Promise<{ id: string } >}) {
   const { id } = await params;
   const listingResult = await getListingById(id);
-  
+
   if (!listingResult.success || !listingResult.data) {
     return {
       title: 'Listing Not Found',
@@ -35,7 +35,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  
+  const supabase = await createSession();
+
   // Fetch the listing data
   const listingResult = await getListingById(id);
 

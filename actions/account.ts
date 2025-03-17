@@ -1,11 +1,12 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase';
+import { createSession } from '@/lib/supabase/serverSide';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import type { ProfileUpdateFormData } from '@/types/user';
+import type { ProfileUpdateFormData } from '@/types';
 import type { ActionResponse } from '@/types/common';
+import type { PostgrestSingleResponse } from '@supabase/supabase-js';
 
 // Validation schema for profile updates
 const profileSchema = z.object({
@@ -18,22 +19,13 @@ const profileSchema = z.object({
  * Update user profile information
  */
 export async function updateUserProfile(formData: ProfileUpdateFormData): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         // Validate the form data
         const validatedData = profileSchema.parse(formData);
 
-        // Get current user from auth token
-        const cookieStore = await cookies();
-        const token = cookieStore.get('sb-auth-token')?.value;
-
-        if (!token) {
-            return {
-                success: false,
-                error: 'Authentication required. Please sign in again.'
-            };
-        }
-
-        const { data: userData, error: userError } = await supabase.auth.getUser(token);
+        const { data: userData, error: userError } = await supabase.auth.getUser();
 
         if (userError || !userData.user) {
             return {
@@ -49,8 +41,7 @@ export async function updateUserProfile(formData: ProfileUpdateFormData): Promis
             .eq('id', userData.user.id)
             .single();
 
-        // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-        let result;
+        let result: PostgrestSingleResponse<null>;
 
         if (existingProfile) {
             // Update existing profile
@@ -111,6 +102,9 @@ export async function updateUserPassword(
     currentPassword: string,
     newPassword: string
 ): Promise<ActionResponse> {
+
+    const supabase = await createSession();
+
     try {
         // Get current user from auth token
         const cookieStore = await cookies();
@@ -181,19 +175,12 @@ export async function updateUserPassword(
  * Delete user account
  */
 export async function deleteUserAccount(): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         // Get current user from auth token
-        const cookieStore = await cookies();
-        const token = cookieStore.get('sb-auth-token')?.value;
 
-        if (!token) {
-            return {
-                success: false,
-                error: 'Authentication required. Please sign in again.'
-            };
-        }
-
-        const { data: userData, error: userError } = await supabase.auth.getUser(token);
+        const { data: userData, error: userError } = await supabase.auth.getUser();
 
         if (userError || !userData.user) {
             return {
@@ -210,9 +197,6 @@ export async function deleteUserAccount(): Promise<ActionResponse> {
         if (deleteError) {
             throw new Error(deleteError.message);
         }
-
-        // Clear cookies
-        cookieStore.delete('sb-auth-token');
 
         return {
             success: true,

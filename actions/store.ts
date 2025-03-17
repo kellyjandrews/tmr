@@ -2,7 +2,7 @@
 'use server';
 
 import { z } from 'zod';
-import { supabase } from '@/lib/supabase';
+import { createSession } from '@/lib/supabase/serverSide';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import type { StoreFormData } from '@/types/store';
@@ -24,6 +24,8 @@ const storeSchema = z.object({
  * Create a new store for the current user
  */
 export async function createStore(formData: StoreFormData): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         // Validate form data
         const validatedData = storeSchema.parse(formData);
@@ -126,13 +128,16 @@ export async function createStore(formData: StoreFormData): Promise<ActionRespon
  * Get the current user's store
  */
 export async function getUserStore(): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         // Get the current user
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+
+        if (userError || !userData.user) {
             return {
                 success: false,
-                error: 'You must be logged in to view your store'
+                error: userError?.message || 'Failed to authenticate user'
             };
         }
 
@@ -140,7 +145,7 @@ export async function getUserStore(): Promise<ActionResponse> {
         const { data: store, error: storeError } = await supabase
             .from('stores')
             .select('*')
-            .eq('user_id', session.user.id)
+            .eq('user_id', userData.user.id)
             .single();
 
         if (storeError && storeError.code !== 'PGRST116') { // PGRST116 is "No rows returned" which is fine
@@ -163,23 +168,14 @@ export async function getUserStore(): Promise<ActionResponse> {
  * Update the current user's store
  */
 export async function updateStore(storeId: string, formData: StoreFormData): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         // Validate form data
         const validatedData = storeSchema.parse(formData);
 
         // Get the current user
-        const cookieStore = await cookies();
-        const token = cookieStore.get('sb-auth-token')?.value;
-
-        if (!token) {
-            return {
-                success: false,
-                error: 'You must be logged in to update your store'
-            };
-        }
-
-        // Get user from the token
-        const { data: userData, error: userError } = await supabase.auth.getUser(token);
+        const { data: userData, error: userError } = await supabase.auth.getUser();
 
         if (userError || !userData.user) {
             return {
@@ -255,6 +251,8 @@ export async function updateStore(storeId: string, formData: StoreFormData): Pro
  * Get a store by slug
  */
 export async function getStoreBySlug(slug: string): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         const { data: store, error: storeError } = await supabase
             .from('stores')
@@ -281,6 +279,8 @@ export async function getStoreBySlug(slug: string): Promise<ActionResponse> {
  * Get store by ID
  */
 export async function getStoreById(id: string): Promise<ActionResponse> {
+    const supabase = await createSession();
+
     try {
         const { data: store, error: storeError } = await supabase
             .from('stores')
