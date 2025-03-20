@@ -1,7 +1,7 @@
 // app/marketplace/page.tsx
 import { Suspense } from 'react';
 import { fetchListings } from '@/actions/listings';
-import ListingList from '@/components/ListingList';
+import ListingList from '@/components/listings/ListingList';
 
 export const metadata = {
   title: 'Marketplace',

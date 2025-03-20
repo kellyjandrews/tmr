@@ -1,9 +1,9 @@
 // app/page.tsx
 import Link from 'next/link';
-import ListingList from '@/components/ListingList';
+import ListingList from '@/components/listings/ListingList';
 import { getFeaturedListings } from '@/actions/listings';
 import { getMainCategories } from '@/actions/categories';
-import CategoryGrid from '@/components/CategoryGrid';
+import CategoryGrid from '@/components/layout/CategoryGrid';
 import { Suspense } from 'react';
 
 // Loading fallback for categories
