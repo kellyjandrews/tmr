@@ -44,7 +44,7 @@ export default function EditListingForm({
 
       // Navigate to the listing detail page or back to the dashboard
       if (formData.status === 'active') {
-        router.push(`/listing/${listing.id}`);
+        router.push(`/listing/${listing.slug}`);
       } else {
         router.push('/dashboard/sell');
       }

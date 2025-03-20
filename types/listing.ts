@@ -55,6 +55,7 @@ export type ListingWithCategories = Listing & {
 export type ListingFormData = {
     id?: UUID;
     name: string;
+    slug?: string;
     description: string;
     price: number;
     shipping_cost: number;
