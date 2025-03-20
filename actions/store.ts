@@ -2,7 +2,7 @@
 'use server';
 
 import { z } from 'zod';
-import { createSession } from '@/lib/supabase/serverSide';
+import { createSession } from '@/utils/supabase/serverSide';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import type { StoreFormData } from '@/types/store';

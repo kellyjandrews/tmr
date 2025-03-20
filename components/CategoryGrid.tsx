@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
-import type { Category } from '@/actions/categories';
+import type { Category } from '@/types';
 
 // Define emoji mappings for main categories
 const CATEGORY_EMOJIS: Record<string, string> = {
@@ -160,10 +160,10 @@ export default function CategoryGrid({
         >
           {categories.map((category) => (
             <Link 
-              key={category.id}
-              href={`/category/${category.id}`}
-              className="bg-white p-6 rounded-lg text-center shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col items-center justify-center flex-shrink-0 w-44 h-44 snap-start"
-            >
+             key={category.id}
+             href={`/category/${category.slug}`}
+             className="bg-white p-6 rounded-lg text-center shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col items-center justify-center flex-shrink-0 w-44 h-44 snap-start"
+>
               <span className="text-3xl mb-3">{getCategoryEmoji(category.name)}</span>
               <h3 className="font-medium text-purple-800">{category.name}</h3>
               <p className="text-xs text-gray-500 mt-2">Browse Collection</p>

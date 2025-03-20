@@ -1,5 +1,6 @@
 // app/dashboard/account/page.tsx
-import { createSession } from '@/lib/supabase/serverSide';
+import { redirect } from 'next/navigation';
+import { createSession } from '@/utils/supabase/serverSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import AccountForm from '@/components/account/AccountForm';
 import type { UserProfile } from '@/types/user';
@@ -12,10 +13,11 @@ export const metadata = {
 export default async function AccountPage() {
   // Get the session server-side
   const supabase = await createSession();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) throw new Error;
+  const { data: { user } } = await supabase.auth.getUser();
   
-  const user = data.user;
+  if (!user) {
+    redirect('/login');
+  }
 
   // Fetch user profile if available
   const { data: profile, error: profileError } = await supabase

@@ -16,8 +16,8 @@ import {
   EyeOff,
   Tag
 } from 'lucide-react';
-import {supabaseLoader} from '@/lib/supabase/clientSide';
-import type { Category } from '@/actions/categories';
+import {supabaseLoader} from '@/utils/supabase/clientSide';
+import type { Category } from '@/types';
 import type { ListingFormData } from '@/types';
 
 type FormSection = 'basic' | 'description' | 'images' | 'categories' | 'pricing' | 'status';

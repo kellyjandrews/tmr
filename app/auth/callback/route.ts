@@ -1,6 +1,6 @@
 // app/auth/callback/route.ts
 import { type NextRequest, NextResponse } from 'next/server';
-import { createSession } from '@/lib/supabase/serverSide';
+import { createSession } from '@/utils/supabase/serverSide';
 
 export async function GET(request: NextRequest) {
     const supabase = await createSession();

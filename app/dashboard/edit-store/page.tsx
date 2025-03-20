@@ -1,6 +1,6 @@
 // app/dashboard/edit-store/page.tsx
 import { redirect } from 'next/navigation';
-import { createSession } from '@/lib/supabase/serverSide';
+import { createSession } from '@/utils/supabase/serverSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import StoreForm from '@/components/store/StoreForm';
 

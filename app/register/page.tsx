@@ -1,6 +1,6 @@
 // app/register/page.tsx
 import type { Metadata } from 'next';
-import RegisterForm from '@/components/RegisterForm';
+import RegisterForm from '@/components/auth/RegisterForm';
 
 export const metadata: Metadata = {
   title: 'Register',

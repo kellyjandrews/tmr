@@ -9,6 +9,7 @@ import type { Category } from './category';
 export type Listing = BaseEntity & {
     store_id: UUID;
     name: string;
+    slug: string;
     description: string | null;
     price: number;
     quantity: number;
@@ -19,6 +20,9 @@ export type Listing = BaseEntity & {
     featured: boolean;
     is_digital: boolean;
     stores?: Store;
+    images?: ListingImage[];
+    shipping?: ListingShipping;
+    categories?: Category[];
 };
 
 /**

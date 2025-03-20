@@ -1,10 +1,11 @@
 // app/layout.tsx
-import type { Metadata } from 'next';
+import React, { type ReactNode } from 'react';
 import { Inter } from 'next/font/google';
 import '@/styles/globals.css';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import { createSession } from '@/lib/supabase/serverSide';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
+import { createSession } from '@/utils/supabase/serverSide';
+import type { Metadata } from 'next';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,16 +20,13 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: ReactNode
 }) {
   // Get current user for the header
   // Get the session server-side
   const supabase = await createSession();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) throw new Error;
-  
+  const { data } = await supabase.auth.getUser(); 
   const user = data.user;
- 
 
   return (
     <html lang="en">

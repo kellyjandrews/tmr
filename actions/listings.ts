@@ -1,7 +1,7 @@
 // actions/listings.ts
 'use server';
 
-import { createSession } from '@/lib/supabase/serverSide';
+import { createSession } from '@/utils/supabase/serverSide';
 import type { FetchListingsOptions, Listing } from '@/types/listing';
 import type { ActionResponse } from '@/types/common';
 
@@ -235,6 +235,88 @@ export async function getRelatedListings(listingId: string, limit = 4): Promise<
         return {
             success: true,
             data: relatedListings as Listing[]
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'An unknown error occurred'
+        };
+    }
+}
+
+/**
+ * Get listings by category slug
+ */
+export async function getListingsByCategorySlug(slug: string, limit = 10, offset = 0): Promise<ActionResponse<Listing[]>> {
+    const supabase = await createSession();
+
+    try {
+        // First get the category ID from the slug
+        const { data: category, error: categoryError } = await supabase
+            .from('categories')
+            .select('id')
+            .eq('slug', slug)
+            .single();
+
+        if (categoryError) throw new Error(categoryError.message);
+
+        // Then get listings with that category ID
+        return await getListingsByCategory(category.id, limit, offset);
+    } catch (error) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'An unknown error occurred'
+        };
+    }
+}
+
+/**
+ * Get a single listing by slug with full details
+ */
+export async function getListingBySlug(slug: string): Promise<ActionResponse<Listing>> {
+    const supabase = await createSession();
+
+    try {
+        // Get the main listing data
+        const { data, error } = await supabase
+            .from('listings')
+            .select('*, stores(id, name, slug, user_id)')
+            .eq('slug', slug)
+            .single();
+
+        if (error) throw new Error(error.message);
+
+        // Get categories for the listing
+        const { data: categories } = await supabase
+            .from('listing_categories')
+            .select('categories(id, name, slug)')
+            .eq('listing_id', data.id);
+
+        // Get all images for the listing
+        const { data: images } = await supabase
+            .from('listing_images')
+            .select('image_url, display_order')
+            .eq('listing_id', data.id)
+            .order('display_order');
+
+        // Get shipping info
+        const { data: shipping } = await supabase
+            .from('listing_shipping')
+            .select('*')
+            .eq('listing_id', data.id)
+            .single();
+
+        // Combine the data
+        const enrichedListing = {
+            ...data,
+            categories: categories ? categories.map(c => c.categories) : [],
+            images: images ? images.map(i => i.image_url) : [],
+            shipping: shipping || null
+        };
+
+        return {
+            success: true,
+            data: enrichedListing as Listing
         };
     } catch (error) {
         return {

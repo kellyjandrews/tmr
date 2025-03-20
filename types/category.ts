@@ -9,8 +9,10 @@ export type Category = BaseEntity & {
     description: string | null;
     parent_id: UUID | null;
     display_order: number;
+    slug: string;
     is_featured: boolean;
 };
+
 
 /**
  * Category with subcategories
@@ -34,6 +36,7 @@ export type Tag = BaseEntity & {
  */
 export type CategoryFormData = {
     name: string;
+    slug?: string;
     description?: string;
     parent_id?: UUID | null;
     display_order?: number;

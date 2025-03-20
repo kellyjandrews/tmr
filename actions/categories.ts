@@ -1,23 +1,9 @@
 // actions/categories.ts
 'use server';
 
-import { createSession } from '@/lib/supabase/serverSide';
+import { createSession } from '@/utils/supabase/serverSide';
+import type { ActionResponse, Category } from '@/types';
 
-export type Category = {
-    id: string;
-    name: string;
-    description: string | null;
-    parent_id: string | null;
-    created_at: string;
-    updated_at: string;
-};
-
-export type ActionResponse<T = unknown> = {
-    success: boolean;
-    message?: string;
-    error?: string;
-    data?: T;
-};
 
 /**
  * Fetch all main categories (those without a parent)
@@ -84,6 +70,33 @@ export async function getCategoryById(categoryId: string): Promise<ActionRespons
             .from('categories')
             .select('*')
             .eq('id', categoryId)
+            .single();
+
+        if (error) throw new Error(error.message);
+
+        return {
+            success: true,
+            data: data as Category
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'An unknown error occurred'
+        };
+    }
+}
+
+/**
+ * Fetch a specific category by slug
+ */
+export async function getCategoryBySlug(slug: string): Promise<ActionResponse<Category>> {
+    const supabase = await createSession();
+
+    try {
+        const { data, error } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('slug', slug)
             .single();
 
         if (error) throw new Error(error.message);

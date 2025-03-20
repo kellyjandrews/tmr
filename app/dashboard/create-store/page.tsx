@@ -1,6 +1,6 @@
 // app/dashboard/create-store/page.tsx
 import { redirect } from 'next/navigation';
-import { createSession } from '@/lib/supabase/serverSide';
+import { createSession } from '@/utils/supabase/serverSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import StoreForm from '@/components/store/StoreForm';
 
@@ -12,10 +12,11 @@ export const metadata = {
 export default async function CreateStorePage() {
   // Get the session server-side
   const supabase = await createSession();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) throw new Error;
+  const { data: { user } } = await supabase.auth.getUser();
   
-  const user = data.user;
+  if (!user) {
+    redirect('/login');
+  }
 
   // Check if the user already has a store
   const { data: existingStore } = await supabase

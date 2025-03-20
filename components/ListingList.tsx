@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { createClient, supabaseLoader } from '@/lib/supabase/clientSide';
+import { createClient, supabaseLoader } from '@/utils/supabase/clientSide';
 import type { Listing } from '@/types/listing';
 
 type ListingListProps = {
@@ -157,7 +157,7 @@ export default function ListingList({
                   <div className="mt-2 flex justify-between items-center">
                     <span className="font-bold text-purple-900">${Number(listing.price).toFixed(2)}</span>
                     <Link 
-                      href={`/listing/${listing.id}`} 
+                      href={`/listing/${listing.slug}`} 
                       className="text-sm text-purple-700 hover:text-purple-900"
                     >
                       View Details →

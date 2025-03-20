@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { createSession } from '@/lib/supabase/serverSide';
+import { createSession } from '@/utils/supabase/serverSide';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import type { ProfileUpdateFormData } from '@/types';

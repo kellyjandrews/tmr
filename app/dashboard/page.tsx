@@ -1,8 +1,8 @@
 // app/dashboard/page.tsx
-import { createSession } from '@/lib/supabase/serverSide';
-
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import DashboardHero from '@/components/dashboard/DashboardHero';
+import { createSession } from '@/utils/supabase/serverSide';
+import { redirect } from 'next/navigation';
 
 export const metadata = {
   title: 'Dashboard | The Magic Resource',
@@ -10,13 +10,16 @@ export const metadata = {
 };
 
 export default async function DashboardPage() {
-  const supabase = await createSession();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) throw new Error;
+  const supabase = await createSession()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return redirect('/login')
+  }
   
-  const user = data.user;
-
-
   // Fetch user profile if available
   const { data: profile } = await supabase
     .from('profiles')
@@ -25,8 +28,8 @@ export default async function DashboardPage() {
     .single();
 
   const userData = {
-    email: user?.email,
-    id: user?.id,
+    email: user?.email || null,
+    id: user.id,
     name: profile?.full_name || null,
   };
 

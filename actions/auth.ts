@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { createSession } from '@/lib/supabase/serverSide';
+import { createSession } from '@/utils/supabase/serverSide';
 
 // Validation schema
 const registerSchema = z.object({
@@ -133,5 +133,5 @@ export async function logoutUser(): Promise<void> {
     const cookieStore = await cookies();
     cookieStore.delete('sb-auth-token');
 
-    redirect('/login');
+    redirect('/');
 }

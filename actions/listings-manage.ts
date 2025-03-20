@@ -2,7 +2,7 @@
 'use server';
 
 import { z } from 'zod';
-import { createSession } from '@/lib/supabase/serverSide';
+import { createSession } from '@/utils/supabase/serverSide';
 import { revalidatePath } from 'next/cache';
 import type { ListingFormData } from '@/types/listing';
 import type { ActionResponse } from '@/types/common';
@@ -20,6 +20,15 @@ const listingSchema = z.object({
     images: z.array(z.string()).min(1, 'Add at least one image'),
     store_id: z.string().uuid().optional()
 });
+
+// Define an interface for the joined query result
+interface ListingWithStore {
+    id: string;
+    store_id: string;
+    stores: {
+        user_id: string;
+    };
+}
 
 /**
  * Create a new listing
@@ -200,12 +209,14 @@ export async function updateListing(formData: ListingFormData): Promise<ActionRe
             };
         }
 
-        // Verify the user owns the listing's store
+        // Use this interface in the updateListing function
+        // Replace the problematic code with:
+
         const { data: listingData, error: listingError } = await supabase
             .from('listings')
             .select('store_id, stores!inner(user_id)')
             .eq('id', validatedData.id)
-            .single();
+            .single<ListingWithStore>();
 
         if (listingError || !listingData) {
             return {
@@ -214,9 +225,8 @@ export async function updateListing(formData: ListingFormData): Promise<ActionRe
             };
         }
 
-
-        // Check if the user owns the store
-        if (listingData.stores[0].user_id !== userData.user.id) {
+        // Now TypeScript knows that listingData.stores.user_id exists
+        if (listingData.stores.user_id !== userData.user.id) {
             return {
                 success: false,
                 error: 'You do not have permission to update this listing'
@@ -518,40 +528,61 @@ export async function getListingForEdit(listingId: string): Promise<ActionRespon
         }
 
         // Get current user
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError || !userData.user) {
             return {
                 success: false,
-                error: 'Authentication failed'
+                error: 'Authentication required. Please sign in again.'
             };
         }
 
-        // Get the basic listing data
+        const userId = userData.user.id;
+
+        // First get the basic listing data without join
         const { data: listing, error: listingError } = await supabase
             .from('listings')
-            .select(`
-                *,
-                stores!inner(
-                    id,
-                    name,
-                    user_id
-                )
-            `)
+            .select('*, store_id')
             .eq('id', listingId)
             .single();
 
-        if (listingError || !listing) {
+        if (listingError) {
+            console.error('Error fetching listing:', listingError);
             return {
                 success: false,
                 error: 'Listing not found'
             };
         }
 
-        // Verify the user owns the store
-        if (listing.stores.user_id !== userData.user.id) {
+        if (!listing) {
             return {
                 success: false,
-                error: 'You do not have permission to view this listing'
+                error: 'Listing not found'
+            };
+        }
+
+
+        // Check if the store belongs to this user
+        const { data: store, error: storeError } = await supabase
+            .from('stores')
+            .select('id, name, user_id')
+            .eq('id', listing.store_id)
+            .single();
+
+        if (storeError) {
+            console.error('Error fetching store:', storeError);
+            return {
+                success: false,
+                error: 'Store not found'
+            };
+        }
+
+
+        // Verify the user owns the store
+        if (store.user_id !== userId) {
+            console.error(`Permission error: Store belongs to ${store.user_id}, current user is ${userId}`);
+            return {
+                success: false,
+                error: 'You do not have permission to edit this listing'
             };
         }
 
