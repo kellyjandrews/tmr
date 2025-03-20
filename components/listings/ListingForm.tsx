@@ -32,6 +32,7 @@ type ListingFormProps = {
 const DEFAULT_FORM_DATA: ListingFormData = {
   name: '',
   description: '',
+  slug: '',
   price: 0,
   shipping_cost: 0,
   quantity: 1,
@@ -184,6 +185,15 @@ export default function ListingForm({
       newErrors.name = 'Name must be at least 3 characters';
     }
     
+    // Add slug validation - only validate if provided
+    if (formData.slug) {
+      if (formData.slug.length < 3) {
+        newErrors.slug = 'Slug must be at least 3 characters';
+      } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
+        newErrors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens';
+      }
+    }
+  
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required';
     } else if (formData.description.length < 10) {
@@ -224,6 +234,7 @@ export default function ListingForm({
       // Expand sections with errors
       const sectionsWithErrors: FormSection[] = [];
       if (validationErrors.name) sectionsWithErrors.push('basic');
+      if (validationErrors.slug) sectionsWithErrors.push('basic');
       if (validationErrors.description) sectionsWithErrors.push('description');
       if (validationErrors.images) sectionsWithErrors.push('images');
       if (validationErrors.categories) sectionsWithErrors.push('categories');
@@ -284,7 +295,7 @@ export default function ListingForm({
         
         {expandedSections.includes('basic') && (
           <div className="p-6 space-y-4">
-            <div>
+                       <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                 Listing Name*
               </label>
@@ -299,6 +310,32 @@ export default function ListingForm({
               />
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
+            
+            {initialData?.id && (
+              <div>
+                <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-1">
+                  Listing URL Slug
+                </label>
+                <div className="flex items-center">
+                  <span className="bg-gray-100 px-3 py-2 rounded-l-md text-gray-500 border border-r-0">
+                    /listing/
+                  </span>
+                  <input
+                    id="slug"
+                    name="slug"
+                    type="text"
+                    value={formData.slug}
+                    onChange={handleInputChange}
+                    className="shadow-sm border border-gray-300 rounded-r-md w-full py-2 px-3 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    placeholder="custom-listing-url"
+                  />
+                </div>
+                {errors.slug && <p className="text-red-500 text-xs mt-1">{errors.slug}</p>}
+                <p className="text-xs text-gray-500 mt-1">
+                  Customize the URL for your listing. Use only lowercase letters, numbers, and hyphens.
+                </p>
+              </div>
+            )}
             
             <div>
               <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">

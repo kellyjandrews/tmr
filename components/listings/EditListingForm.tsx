@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateListing } from '@/actions/listings-manage';
 import ListingForm from '@/components/listings/ListingForm';
-import type { ListingFormData } from '@/types/listing';
+import type { ListingFormData, Listing } from '@/types/listing';
 import type { Category } from '@/types/category';
 
 type EditListingFormProps = {
@@ -29,7 +29,7 @@ export default function EditListingForm({
     setError(null);
 
     try {
-      // Make sure the ID is included
+      // Make sure the ID and slug are included
       const dataWithIds = {
         ...formData,
         id: listing.id,
@@ -42,9 +42,14 @@ export default function EditListingForm({
         throw new Error(result.error || 'Failed to update listing');
       }
 
+      const {data}  = result as {data:Listing}
+
+      // Get the slug from the response or fallback to existing slug
+      const updatedSlug = data.slug || listing.slug;
+
       // Navigate to the listing detail page or back to the dashboard
       if (formData.status === 'active') {
-        router.push(`/listing/${listing.slug}`);
+        router.push(`/listing/${updatedSlug}`);
       } else {
         router.push('/dashboard/sell');
       }

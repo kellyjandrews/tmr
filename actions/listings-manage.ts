@@ -18,7 +18,8 @@ const listingSchema = z.object({
     status: z.enum(['draft', 'active', 'hidden', 'sold']),
     categories: z.array(z.string().uuid()).min(1, 'Select at least one category'),
     images: z.array(z.string()).min(1, 'Add at least one image'),
-    store_id: z.string().uuid().optional()
+    store_id: z.string().uuid().optional(),
+    slug: z.string().optional()
 });
 
 // Define an interface for the joined query result
@@ -239,6 +240,7 @@ export async function updateListing(formData: ListingFormData): Promise<ActionRe
             .update({
                 name: validatedData.name,
                 description: validatedData.description,
+                slug: validatedData.slug,
                 price: validatedData.price,
                 quantity: validatedData.quantity,
                 status: validatedData.status,
@@ -332,7 +334,7 @@ export async function updateListing(formData: ListingFormData): Promise<ActionRe
         revalidatePath('/dashboard/sell');
         revalidatePath('/dashboard');
         revalidatePath('/marketplace');
-        revalidatePath(`/listing/${validatedData.id}`);
+        revalidatePath(`/listing/${validatedData.slug}`);
 
         return {
             success: true,
@@ -626,6 +628,7 @@ export async function getListingForEdit(listingId: string): Promise<ActionRespon
         const listingFormData: ListingFormData = {
             id: listing.id,
             name: listing.name,
+            slug: listing.slug,
             description: listing.description || '',
             price: listing.price,
             shipping_cost: shipping?.flat_rate || 0,
