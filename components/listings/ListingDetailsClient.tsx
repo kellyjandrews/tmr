@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabaseLoader } from '@/utils/supabase/clientSide';
+import ContactSeller from '@/components/messages/ContactSeller';
 import type { Listing } from '@/types/listing';
 
 type ListingDetailsClientProps = {
@@ -140,12 +141,11 @@ export default function ListingDetailsClient({ listing }: ListingDetailsClientPr
             </div>
             
             <div className="mt-8">
-              <button 
-                type="button" 
-                className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 px-4 rounded"
-              >
-                Contact Seller
-              </button>
+              <ContactSeller 
+                listingId={listing.id}
+                listingName={listing.name}
+                buttonFullWidth={true}
+              />
             </div>
           </div>
         </div>
