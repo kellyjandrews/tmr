@@ -37,7 +37,7 @@ export async function addToWishlist(listingId: string): Promise<ActionResponse> 
         }
 
         // Check if already in wishlist
-        const { data: existingWishlist, error: wishlistError } = await supabase
+        const { data: existingWishlist } = await supabase
             .from('wishlists')
             .select('id')
             .eq('user_id', userData.user.id)
@@ -50,11 +50,6 @@ export async function addToWishlist(listingId: string): Promise<ActionResponse> 
                 success: true,
                 message: 'Item already in wishlist'
             };
-        }
-
-        if (wishlistError) {
-            throw new Error(wishlistError.message);
-
         }
 
         // Add to wishlist
@@ -189,7 +184,7 @@ export async function getWishlist(): Promise<ActionResponse<WishlistWithListing[
         }
 
         // Get wishlist items with listing details
-        const { data, error: wishlistError } = await supabase
+        const { data } = await supabase
             .from('wishlists')
             .select(`
         *,
@@ -201,9 +196,7 @@ export async function getWishlist(): Promise<ActionResponse<WishlistWithListing[
             .eq('user_id', userData.user.id)
             .order('created_at', { ascending: false });
 
-        if (wishlistError) {
-            throw new Error(wishlistError.message);
-        }
+
 
         return {
             success: true,
@@ -249,7 +242,7 @@ export async function followStore(storeId: string): Promise<ActionResponse> {
         }
 
         // Check if already following
-        const { data: existingFollow, error: followError } = await supabase
+        const { data: existingFollow } = await supabase
             .from('follows')
             .select('id')
             .eq('user_id', userData.user.id)
@@ -264,9 +257,6 @@ export async function followStore(storeId: string): Promise<ActionResponse> {
             };
         }
 
-        if (followError) {
-            throw new Error(followError.message);
-        }
 
         // Follow the store
         const { error: insertError } = await supabase
