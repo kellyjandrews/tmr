@@ -11,7 +11,7 @@ export const metadata = {
 export default async function MessagesPage({ 
   searchParams 
 }: { 
-  searchParams?: { conversation?: string } 
+  searchParams: { conversation?: string } 
 }) {
   // Get the user ID for the messages page
   const supabase = await createSession();
@@ -22,7 +22,8 @@ export default async function MessagesPage({
   }
   
   const userId = data.user.id;
-  const conversationId = searchParams?.conversation || null;
+  const {conversation} = await searchParams;
+  const conversationId = conversation || '';
 
   return (
     <DashboardPageWrapper pageName="Messages">
