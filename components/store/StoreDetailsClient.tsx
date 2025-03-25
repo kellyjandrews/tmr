@@ -4,8 +4,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
 import { supabaseLoader } from '@/utils/supabase/clientSide';
+import FollowButton from '@/components/store/FollowButton';
 import type { Store } from '@/types/store';
 import type { Listing } from '@/types/listing';
+
 
 type StoreDetailsClientProps = {
   store: Store;
@@ -18,17 +20,25 @@ export default function StoreDetailsClient({ store, listings }: StoreDetailsClie
   return (
     <>
       {/* Store header - full width */}
-      <div className="bg-purple-800 py-8 px-4 sm:px-6 lg:px-8 text-white">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold">{store.name}</h1>
-          <p className="mt-2 text-purple-200">@{store.slug}</p>
-          {store.location && (
-            <p className="mt-1 text-purple-200 text-sm">
-              Located in: {store.location}
-            </p>
-          )}
-        </div>
-      </div>
+      <div className="max-w-7xl mx-auto">
+  <h1 className="text-3xl font-bold">{store.name}</h1>
+  <div className="flex items-center justify-between"> {/* Add this wrapper div */}
+    <div>
+      <p className="mt-2 text-purple-200">@{store.slug}</p>
+      {store.location && (
+        <p className="mt-1 text-purple-200 text-sm">
+          Located in: {store.location}
+        </p>
+      )}
+    </div>
+    
+    {/* Add the follow button */}
+    <FollowButton 
+      storeId={store.id}
+      variant="primary"
+    />
+  </div>
+</div>
       
       <div className="max-w-7xl mx-auto" />
       

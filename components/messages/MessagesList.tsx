@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { Search, MessageSquare } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { getUserConversations } from '@/actions/messages';
-import type { Conversation } from '@/types/message';
+import type { ConversationWithDetails } from '@/types/message';
 
 export default function MessageList({ 
   selectedConversationId = null,
@@ -15,20 +14,20 @@ export default function MessageList({
   selectedConversationId?: string | null;
   onSelectConversation?: (conversationId: string) => void;
 }) {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<ConversationWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const fetchConversations = async () => {
+    const fetchConversations = async ()  => {
       try {
         setLoading(true);
         setError(null);
         
         const result = await getUserConversations();
         if (result.success) {
-          setConversations(result.data || []);
+          setConversations(result.data|| []);
         } else {
           setError(result.error || 'Failed to load conversations');
         }
@@ -44,7 +43,7 @@ export default function MessageList({
   }, []);
 
   // Filter conversations based on search query
-  const filteredConversations = conversations.filter(conversation => {
+  const filteredConversations = conversations.filter((conversation) => {
     if (!searchQuery) return true;
     
     const searchLower = searchQuery.toLowerCase();
@@ -76,7 +75,7 @@ export default function MessageList({
   });
 
   // Get the conversation title or generate one from participants
-  const getConversationTitle = (conversation: Conversation) => {
+  const getConversationTitle = (conversation: ConversationWithDetails) => {
     if (conversation.title) {
       return conversation.title;
     }
@@ -94,7 +93,7 @@ export default function MessageList({
   };
 
   // Get the latest message preview
-  const getMessagePreview = (conversation: Conversation) => {
+  const getMessagePreview = (conversation: ConversationWithDetails) => {
     if (Array.isArray(conversation.latest_message) && conversation.latest_message[0]) {
       return conversation.latest_message[0].content;
     }
@@ -102,15 +101,11 @@ export default function MessageList({
   };
 
   // Get the time display for the conversation
-  const getTimeDisplay = (conversation: Conversation) => {
+  const getTimeDisplay = (conversation: ConversationWithDetails) => {
     const timestamp = conversation.last_message_at;
     if (!timestamp) return '';
     
-    try {
-      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
-    } catch (e) {
-      return '';
-    }
+    return formatDistanceToNow(new Date(timestamp), { addSuffix: true }) || '';
   };
 
   const handleSelectConversation = (id: string) => {
@@ -123,14 +118,14 @@ export default function MessageList({
     return (
       <div className="flex flex-col h-full">
         <div className="mb-4">
-          <div className="w-full h-10 bg-gray-200 rounded animate-pulse"></div>
+          <div className="w-full h-10 bg-gray-200 rounded animate-pulse" />
         </div>
         
         <div className="space-y-2">
           {[1, 2, 3].map(i => (
             <div key={i} className="p-3 rounded-md bg-gray-200 animate-pulse">
-              <div className="h-6 w-3/4 bg-gray-300 rounded mb-2"></div>
-              <div className="h-4 w-1/2 bg-gray-300 rounded"></div>
+              <div className="h-6 w-3/4 bg-gray-300 rounded mb-2" />
+              <div className="h-4 w-1/2 bg-gray-300 rounded" />
             </div>
           ))}
         </div>
@@ -144,6 +139,7 @@ export default function MessageList({
         <div className="p-4 bg-red-50 text-red-700 rounded-md">
           <p>Error: {error}</p>
           <button
+           type="button"
             onClick={() => window.location.reload()}
             className="mt-2 text-sm text-red-700 underline"
           >
@@ -196,6 +192,7 @@ export default function MessageList({
               <div 
                 key={conversation.id}
                 onClick={() => handleSelectConversation(conversation.id)}
+                onKeyUp={(e) => console.log(e.target)}
                 className={`p-3 rounded-md cursor-pointer ${
                   isSelected 
                     ? 'bg-purple-50' 
@@ -213,7 +210,7 @@ export default function MessageList({
                 
                 <div className="flex items-center mt-1">
                   {hasUnread && (
-                    <span className="w-2 h-2 bg-purple-600 rounded-full mr-2"></span>
+                    <span className="w-2 h-2 bg-purple-600 rounded-full mr-2" />
                   )}
                   <p className={`text-sm truncate ${hasUnread ? 'text-gray-800' : 'text-gray-600'}`}>
                     {getMessagePreview(conversation)}

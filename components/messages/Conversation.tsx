@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-// import { useRouter } from 'next/navigation';
-// import Image from 'next/image';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { Send, ArrowLeft, ExternalLink } from 'lucide-react';
 import { getConversationMessages, sendMessage } from '@/actions/messages';
-import type { Conversation as ConversationType, Message } from '@/types/message';
+import type { ConversationWithDetails, Message } from '@/types/message';
 
 type ConversationProps = {
   conversationId: string;
@@ -16,8 +15,8 @@ type ConversationProps = {
 };
 
 export default function Conversation({ conversationId, onBack, currentUserId }: ConversationProps) {
-  // const router = useRouter();
-  const [conversation, setConversation] = useState<ConversationType | null>(null);
+  const router = useRouter();
+  const [conversation, setConversation] = useState<ConversationWithDetails | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -57,7 +56,7 @@ export default function Conversation({ conversationId, onBack, currentUserId }: 
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, []);
 
   // Handle sending a new message
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -112,11 +111,7 @@ export default function Conversation({ conversationId, onBack, currentUserId }: 
 
   // Format message timestamp
   const formatMessageTime = (timestamp: string) => {
-    try {
-      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
-    } catch (e) {
-      return '';
-    }
+    return formatDistanceToNow(new Date(timestamp), { addSuffix: true }) || '';
   };
 
   // Determine if the next message is from the same sender (for grouping)
@@ -127,37 +122,73 @@ export default function Conversation({ conversationId, onBack, currentUserId }: 
     return currentMessage.sender_id === nextMessage.sender_id;
   };
 
+
+  const pathname = usePathname();
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Check screen size to handle responsive layout
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
+  
+  // Handle back button on mobile
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (pathname.includes('/messages/')) {
+      // If we're on the conversation detail page, go back to the messages page
+      router.push('/dashboard/messages');
+    } else {
+      // Otherwise, just remove the conversation param
+      router.push('/dashboard/messages');
+    }
+  };
+
+  // Check if we should show the back button (on mobile or on the conversation detail page)
+  const showBackButton = onBack || pathname.includes('/messages/') || isMobile;
+
   if (loading) {
     return (
       <div className="flex flex-col h-full">
         <div className="border-b border-gray-200 p-4 bg-white">
-          <div className="h-6 w-48 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-6 w-48 bg-gray-200 rounded animate-pulse" />
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {[1, 2, 3].map(i => (
             <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
               <div className={`rounded-lg p-3 max-w-xs ${i % 2 === 0 ? 'bg-gray-200' : 'bg-gray-200'} animate-pulse`}>
-                <div className="h-4 w-32 bg-gray-300 rounded mb-2"></div>
-                <div className="h-3 w-20 bg-gray-300 rounded"></div>
+                <div className="h-4 w-32 bg-gray-300 rounded mb-2" />
+                <div className="h-3 w-20 bg-gray-300 rounded" />
               </div>
             </div>
           ))}
         </div>
         <div className="p-4 border-t border-gray-200 bg-white">
-          <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-10 bg-gray-200 rounded animate-pulse" />
         </div>
       </div>
     );
   }
+
 
   return (
     <div className="flex flex-col h-full">
       {/* Conversation header */}
       <div className="border-b border-gray-200 p-4 bg-white flex justify-between items-center">
         <div className="flex items-center">
-          {onBack && (
+          {showBackButton && (
             <button 
-              onClick={onBack} 
+              type="button"
+              onClick={handleBack} 
               className="mr-2 text-gray-600 hover:text-gray-900"
               aria-label="Go back"
             >

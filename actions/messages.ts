@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { createSession } from '@/utils/supabase/serverSide';
 import { revalidatePath } from 'next/cache';
 import type { ActionResponse } from '@/types/common';
-import type { Conversation, Message, NewConversationInput, NewMessageInput } from '@/types/message';
+import type { ConversationWithDetails, Message, NewConversationInput, NewMessageInput } from '@/types/message';
 
 // Validation schemas
 const newMessageSchema = z.object({
@@ -24,7 +24,7 @@ const newConversationSchema = z.object({
 /**
  * Get all conversations for the current user
  */
-export async function getUserConversations(): Promise<ActionResponse<Conversation[]>> {
+export async function getUserConversations(): Promise<ActionResponse<ConversationWithDetails[]>> {
   const supabase = await createSession();
 
   try {
@@ -134,7 +134,7 @@ export async function getUserConversations(): Promise<ActionResponse<Conversatio
 /**
  * Get messages for a specific conversation
  */
-export async function getConversationMessages(conversationId: string): Promise<ActionResponse<{ conversation: Conversation, messages: Message[] }>> {
+export async function getConversationMessages(conversationId: string): Promise<ActionResponse<{ conversation: ConversationWithDetails, messages: Message[] }>> {
   const supabase = await createSession();
 
   try {
@@ -472,7 +472,7 @@ export async function createConversation(data: NewConversationInput): Promise<Ac
 /**
  * Get a specific conversation by ID 
  */
-export async function getConversation(conversationId: string): Promise<ActionResponse<Conversation>> {
+export async function getConversation(conversationId: string): Promise<ActionResponse<ConversationWithDetails>> {
   const supabase = await createSession();
 
   try {

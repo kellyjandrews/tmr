@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { supabaseLoader } from '@/utils/supabase/clientSide';
 import ContactSeller from '@/components/messages/ContactSeller';
+import FavoriteButton from '@/components/listings/FavoriteButton';
 import type { Listing } from '@/types/listing';
 
 type ListingDetailsClientProps = {
@@ -140,11 +141,16 @@ export default function ListingDetailsClient({ listing }: ListingDetailsClientPr
               </div>
             </div>
             
-            <div className="mt-8">
+            <div className="mt-8 flex gap-3">
               <ContactSeller 
                 listingId={listing.id}
                 listingName={listing.name}
-                buttonFullWidth={true}
+                buttonFullWidth={false}
+              />
+              
+              <FavoriteButton
+                listingId={listing.id}
+                className="px-4 py-2 rounded-md border border-gray-300"
               />
             </div>
           </div>

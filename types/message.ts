@@ -1,6 +1,5 @@
 // types/message.ts
 import type { UUID, BaseEntity } from './common';
-import type { User } from './user';
 import type { Listing } from './listing';
 import type { Order } from './order';
 
@@ -29,13 +28,17 @@ export type ConversationWithDetails = Conversation & {
  * Conversation participant
  */
 export type ConversationParticipant = {
-    id: UUID;
     conversation_id: UUID;
-    user_id: UUID;
     is_admin: boolean;
     last_read_at?: string;
     created_at: string;
-    user?: User;
+    user_id: UUID;
+    profiles: {
+        id: UUID;
+        email: string;
+        full_name: string;
+        avatar_url: string;
+    }
 };
 
 /**
@@ -48,7 +51,12 @@ export type Message = {
     content: string;
     is_system_message: boolean;
     created_at: string;
-    sender?: User;
+    sender?: {
+        id: UUID;
+        email: string;
+        full_name: string;
+        avatar_url: string;
+    };
 };
 
 /**

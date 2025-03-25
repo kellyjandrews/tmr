@@ -2,7 +2,7 @@
 import { notFound } from 'next/navigation';
 import { getStoreBySlug } from '@/actions/store';
 import { fetchListings } from '@/actions/listings';
-import StoreDetailsClient from '@/components/store/StoreDetailsCleient';
+import StoreDetailsClient from '@/components/store/StoreDetailsClient';
 import type { Metadata } from 'next';
 import type { Store } from '@/types/store';
 
