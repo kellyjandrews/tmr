@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Send } from 'lucide-react';
-import { contactSeller } from '@/actions/messages';
+import { createConversation } from '@/actions/messages';
 
 type ContactSellerProps = {
   listingId: string;
@@ -12,6 +12,8 @@ type ContactSellerProps = {
   buttonFullWidth?: boolean;
   buttonClassName?: string;
 };
+
+// add the IDs of the listing owner and the current user.
 
 export default function ContactSeller({
   listingId,
@@ -50,7 +52,7 @@ export default function ContactSeller({
       setIsSending(true);
       setError(null);
       
-      const result = await contactSeller(listingId, message.trim());
+      const result = await createConversation({participant_ids:[], listing_id: listingId, initial_message: message.trim()});
       
       if (result.success && result.data) {
         // Redirect to the conversation

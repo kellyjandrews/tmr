@@ -92,13 +92,20 @@ export default function MessageList({
     return participantNames.join(', ') || 'Conversation';
   };
 
-  // Get the latest message preview
-  const getMessagePreview = (conversation: ConversationWithDetails) => {
-    if (Array.isArray(conversation.latest_message) && conversation.latest_message[0]) {
-      return conversation.latest_message[0].content;
-    }
-    return 'No messages yet';
-  };
+// Get the latest message preview
+const getMessagePreview = (conversation: ConversationWithDetails) => {
+  // Check if latest_message exists and has a content field
+  if (conversation.latest_message && conversation.latest_message.content) {
+    return conversation.latest_message.content;
+  }
+  
+  // If it's an array (possibly due to query structure)
+  if (Array.isArray(conversation.latest_message) && conversation.latest_message[0]) {
+    return conversation.latest_message[0].content || 'No message content';
+  }
+  
+  return 'No messages yet';
+};
 
   // Get the time display for the conversation
   const getTimeDisplay = (conversation: ConversationWithDetails) => {
@@ -184,13 +191,13 @@ export default function MessageList({
         </div>
       ) : (
         <div className="space-y-2 overflow-y-auto">
-          {filteredConversations.map(conversation => {
+          {filteredConversations.map((conversation,index) => {
             const isSelected = selectedConversationId === conversation.id;
             const hasUnread = (conversation.unread_count || 0) > 0;
             
             return (
               <div 
-                key={conversation.id}
+                key={`${conversation.id}-${index}`}
                 onClick={() => handleSelectConversation(conversation.id)}
                 onKeyUp={(e) => console.log(e.target)}
                 className={`p-3 rounded-md cursor-pointer ${
