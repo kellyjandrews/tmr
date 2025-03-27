@@ -12,17 +12,18 @@ export const metadata = {
   description: 'View and respond to messages',
 };
 
-export default async function ConversationPage({ params }: { params: { id: string } }) {
+export default async function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
   // Get the user ID for the conversation page
   const supabase = await createSession();
   const { data } = await supabase.auth.getUser();
-  
+
   if (!data.user) {
     redirect('/login');
   }
   
   const userId = data.user.id;
-  const conversationId = params.id;
+  const conversation = await params;
+  const conversationId =  conversation.id;
   
   // Verify the user has access to this conversation
   const conversationResult = await getConversation(conversationId);

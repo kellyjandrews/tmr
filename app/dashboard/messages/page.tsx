@@ -11,7 +11,7 @@ export const metadata = {
 export default async function MessagesPage({ 
   searchParams 
 }: { 
-  searchParams: { conversation?: string } 
+  searchParams: Promise<{ conversation?: string }>
 }) {
   // Get the user ID for the messages page
   const supabase = await createSession();
