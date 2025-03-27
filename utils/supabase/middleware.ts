@@ -50,7 +50,17 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(loginUrl)
     }
 
-    //     // Redirect authenticated users away from login/register pages
+    // Make sure these routes are allowed for unauthenticated users
+    // by adding this check before the dashboard protection
+
+    if (
+        request.nextUrl.pathname === '/forgot-password' ||
+        request.nextUrl.pathname === '/reset-password'
+    ) {
+        return NextResponse.next();
+    }
+
+    // Redirect authenticated users away from login/register pages
     if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register')) {
         const dashboardUrl = new URL('/dashboard', request.url)
         return NextResponse.redirect(dashboardUrl)

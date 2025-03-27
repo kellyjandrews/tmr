@@ -58,8 +58,7 @@ USING (auth.uid() = user_id);
 -- Anyone can view all stores (for public marketplace)
 CREATE POLICY "Public can view all stores" 
 ON public.stores 
-FOR SELECT 
-TO anon 
+FOR SELECT  
 USING (true);
 
 -- Authenticated users can create their own store

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import MiniCart from '@/components/cart/MiniCart';
 
 type NavbarProps = {
   user?: {
@@ -38,19 +39,48 @@ export default function Navbar({ user }: NavbarProps) {
                 MyApp
               </Link>
             </div>
+            
+            {/* Navigation links */}
+            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <Link 
+                href="/marketplace" 
+                className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-blue-500"
+              >
+                Marketplace
+              </Link>
+              <Link 
+                href="/cart" 
+                className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-blue-500"
+              >
+                Cart
+              </Link>
+            </div>
           </div>
 
           <div className="flex items-center">
+            {/* Shopping Cart Icon */}
+            <div className="mr-4">
+              <MiniCart />
+            </div>
+            
             {user ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
                     {user.email?.charAt(0).toUpperCase() || 'U'}
                   </div>
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-gray-700 hidden md:inline">
                     {user.email || 'User'}
                   </span>
                 </div>
+                
+                <Link
+                  href="/dashboard"
+                  className="text-gray-700 hover:text-gray-900 hidden md:inline-block"
+                >
+                  Dashboard
+                </Link>
+                
                 <button
                   type='button'
                   onClick={handleLogout}

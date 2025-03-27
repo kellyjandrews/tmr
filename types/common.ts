@@ -37,6 +37,6 @@ export type SortingParams = {
  */
 export type BaseEntity = {
     id: UUID;
-    created_at: string;
-    updated_at: string;
+    created_at?: string;
+    updated_at?: string;
 };

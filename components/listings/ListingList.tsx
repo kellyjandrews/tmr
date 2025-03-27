@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { createClient, supabaseLoader } from '@/utils/supabase/clientSide';
+import { createClient } from '@/utils/supabase/clientSide';
 import type { Listing } from '@/types/listing';
+import ListingCard from '@/components/listings/ListingCard';
 
 type ListingListProps = {
   title?: string;
@@ -127,44 +127,7 @@ export default function ListingList({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {listings.map((listing) => (
-              <div key={listing.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <div className="h-48 bg-purple-100 flex items-center justify-center relative">
-                  {listing.image_url ? (
-                    <Image
-                      loader={supabaseLoader}
-                      src={listing.image_url} 
-                      alt={listing.name} 
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <span className="text-3xl">✨</span>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="font-medium text-purple-800 truncate">{listing.name}</h3>
-                  {listing.stores && (
-                    <p className="text-sm text-gray-600 mt-1 truncate">
-                      Sold by{' '}
-                      <Link 
-                        href={`/store/${listing.stores.slug}`} 
-                        className="hover:text-purple-700"
-                      >
-                        {listing.stores.name}
-                      </Link>
-                    </p>
-                  )}
-                  <div className="mt-2 flex justify-between items-center">
-                    <span className="font-bold text-purple-900">${Number(listing.price).toFixed(2)}</span>
-                    <Link 
-                      href={`/listing/${listing.slug}`} 
-                      className="text-sm text-purple-700 hover:text-purple-900"
-                    >
-                      View Details →
-                    </Link>
-                  </div>
-                </div>
-              </div>
+              <ListingCard key={listing.id} listing={listing} />
             ))}
           </div>
         )}

@@ -95,7 +95,7 @@ export default function MessageList({
 // Get the latest message preview
 const getMessagePreview = (conversation: ConversationWithDetails) => {
   // Check if latest_message exists and has a content field
-  if (conversation.latest_message && conversation.latest_message.content) {
+  if (conversation.latest_message?.content) {
     return conversation.latest_message.content;
   }
   

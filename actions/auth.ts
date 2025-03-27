@@ -135,3 +135,88 @@ export async function logoutUser(): Promise<void> {
 
     redirect('/');
 }
+
+/**
+ * Request a password reset email
+ */
+export async function requestPasswordReset(email: string): Promise<ActionResponse> {
+    const supabase = await createSession();
+
+    try {
+        // Validate email
+        if (!email || !email.includes('@')) {
+            return {
+                success: false,
+                error: 'Please enter a valid email address'
+            };
+        }
+
+        // Send password reset email through Supabase
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password`
+        });
+
+        if (error) throw error;
+
+        return {
+            success: true,
+            message: 'Password reset instructions have been sent to your email'
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'An unknown error occurred'
+        };
+    }
+}
+
+/**
+ * Reset password with token
+ */
+export async function resetPassword(
+    password: string,
+    confirmPassword: string
+): Promise<ActionResponse> {
+    const supabase = await createSession();
+
+    try {
+        // Validate password
+        if (!password) {
+            return {
+                success: false,
+                error: 'Password is required'
+            };
+        }
+
+        if (password.length < 8) {
+            return {
+                success: false,
+                error: 'Password must be at least 8 characters'
+            };
+        }
+
+        if (password !== confirmPassword) {
+            return {
+                success: false,
+                error: 'Passwords do not match'
+            };
+        }
+
+        // Update the password
+        const { error } = await supabase.auth.updateUser({
+            password
+        });
+
+        if (error) throw error;
+
+        return {
+            success: true,
+            message: 'Your password has been reset successfully'
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'An unknown error occurred'
+        };
+    }
+}
