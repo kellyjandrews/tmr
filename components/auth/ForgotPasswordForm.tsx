@@ -44,7 +44,7 @@ export default function ForgotPasswordForm() {
       {success ? (
         <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
           <p>Check your email for a link to reset your password.</p>
-          <p className="mt-2">If it doesn't appear within a few minutes, check your spam folder.</p>
+          <p className="mt-2">If it doesn&apos;t appear within a few minutes, check your spam folder.</p>
         </div>
       ) : (
         <>
@@ -55,7 +55,7 @@ export default function ForgotPasswordForm() {
           )}
           
           <p className="text-gray-600 mb-4">
-            Enter your email address and we'll send you a link to reset your password.
+            Enter your email address and we&apos;ll send you a link to reset your password.
           </p>
           
           <form onSubmit={handleSubmit}>
