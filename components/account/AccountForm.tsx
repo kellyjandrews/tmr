@@ -25,6 +25,7 @@ export default function AccountForm({ initialProfile }: AccountFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isProfileSaving, setIsProfileSaving] = useState<boolean>(false);
   const [isPasswordSaving, setIsPasswordSaving] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Handle profile form changes
@@ -175,6 +176,33 @@ export default function AccountForm({ initialProfile }: AccountFormProps) {
       });
     } finally {
       setIsPasswordSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (isDeleting) return;
+    if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      try {
+        setIsDeleting(true);
+        // Import the deleteUserAccount action
+        const { deleteUserAccount } = await import('@/actions/account');
+        
+        const result = await deleteUserAccount();
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to delete account');
+        }
+        
+        // Account deleted successfully, redirect to home page
+        router.push('/');
+      } catch (error) {
+        console.error('Error deleting account:', error);
+        setErrors({
+          form: error instanceof Error ? error.message : 'An unknown error occurred'
+        });
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -384,12 +412,7 @@ export default function AccountForm({ initialProfile }: AccountFormProps) {
             <button 
               type="button" 
               className="text-sm text-red-600 hover:text-red-700"
-              onClick={() => {
-                // Handle delete account confirmation
-                if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-                  // Call delete account action
-                }
-              }}
+              onClick={() =>  handleDeleteAccount()}
             >
               Delete Account
             </button>

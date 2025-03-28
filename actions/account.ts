@@ -1,12 +1,11 @@
+// actions/account.ts
 'use server';
 
-import { cookies } from 'next/headers';
+import { z } from 'zod';
 import { createSession } from '@/utils/supabase/serverSide';
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 import type { ProfileUpdateFormData } from '@/types';
 import type { ActionResponse } from '@/types/common';
-import type { PostgrestSingleResponse } from '@supabase/supabase-js';
 
 // Validation schema for profile updates
 const profileSchema = z.object({
@@ -16,7 +15,7 @@ const profileSchema = z.object({
 });
 
 /**
- * Update user profile information
+ * Update user profile information using stored procedure
  */
 export async function updateUserProfile(formData: ProfileUpdateFormData): Promise<ActionResponse> {
     const supabase = await createSession();
@@ -34,41 +33,23 @@ export async function updateUserProfile(formData: ProfileUpdateFormData): Promis
             };
         }
 
-        // Check if profile exists
-        const { data: existingProfile } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('id', userData.user.id)
-            .single();
+        // Call the stored procedure to update the profile
+        const { data: success, error: updateError } = await supabase.rpc(
+            'update_user_profile',
+            {
+                user_id_param: userData.user.id,
+                full_name_param: validatedData.full_name,
+                bio_param: validatedData.bio,
+                avatar_url_param: validatedData.avatar_url
+            }
+        );
 
-        let result: PostgrestSingleResponse<null>;
-
-        if (existingProfile) {
-            // Update existing profile
-            result = await supabase
-                .from('profiles')
-                .update({
-                    full_name: validatedData.full_name,
-                    bio: validatedData.bio,
-                    avatar_url: validatedData.avatar_url,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', userData.user.id);
-        } else {
-            // Create new profile
-            result = await supabase
-                .from('profiles')
-                .insert({
-                    id: userData.user.id,
-                    email: userData.user.email,
-                    full_name: validatedData.full_name,
-                    bio: validatedData.bio,
-                    avatar_url: validatedData.avatar_url,
-                });
+        if (updateError) {
+            throw new Error(updateError.message);
         }
 
-        if (result.error) {
-            throw new Error(result.error.message);
+        if (!success) {
+            throw new Error('Failed to update profile');
         }
 
         // Revalidate dashboard paths to show updated user info
@@ -102,27 +83,16 @@ export async function updateUserPassword(
     currentPassword: string,
     newPassword: string
 ): Promise<ActionResponse> {
-
     const supabase = await createSession();
 
     try {
-        // Get current user from auth token
-        const cookieStore = await cookies();
-        const token = cookieStore.get('sb-auth-token')?.value;
-
-        if (!token) {
-            return {
-                success: false,
-                error: 'Authentication required. Please sign in again.'
-            };
-        }
-
-        const { data: userData, error: userError } = await supabase.auth.getUser(token);
+        // Get current user
+        const { data: userData, error: userError } = await supabase.auth.getUser();
 
         if (userError || !userData.user) {
             return {
                 success: false,
-                error: userError?.message || 'Failed to authenticate user'
+                error: 'Authentication required. Please sign in again.'
             };
         }
 
@@ -172,30 +142,83 @@ export async function updateUserPassword(
 }
 
 /**
- * Delete user account
+ * Get user profile using stored procedure
  */
-export async function deleteUserAccount(): Promise<ActionResponse> {
+export async function getUserProfile(): Promise<ActionResponse> {
     const supabase = await createSession();
 
     try {
-        // Get current user from auth token
-
+        // Get current user
         const { data: userData, error: userError } = await supabase.auth.getUser();
 
         if (userError || !userData.user) {
             return {
                 success: false,
-                error: userError?.message || 'Failed to authenticate user'
+                error: 'Authentication required'
             };
         }
 
-        // Delete user account - Supabase will cascade delete all user data
-        const { error: deleteError } = await supabase.auth.admin.deleteUser(
+        // Call the stored procedure to get the profile
+        const { data, error: profileError } = await supabase.rpc(
+            'get_user_profile',
+            { user_id_param: userData.user.id }
+        );
+
+        if (profileError) {
+            throw new Error(profileError.message);
+        }
+
+        return {
+            success: true,
+            data: data[0] || null
+        };
+    } catch (error) {
+        console.error('Get profile error:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'An unknown error occurred'
+        };
+    }
+}
+
+/**
+ * Delete user account using stored procedure
+ */
+export async function deleteUserAccount(): Promise<ActionResponse> {
+    const supabase = await createSession();
+
+    try {
+        // Get current user
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+
+        if (userError || !userData.user) {
+            return {
+                success: false,
+                error: 'Authentication required'
+            };
+        }
+
+        // First, delete all user data using stored procedure
+        const { data: success, error: deleteDataError } = await supabase.rpc(
+            'delete_user_account',
+            { user_id_param: userData.user.id }
+        );
+
+        if (deleteDataError) {
+            throw new Error(deleteDataError.message);
+        }
+
+        if (!success) {
+            throw new Error('Failed to delete user data');
+        }
+
+        // Then, delete the actual auth user
+        const { error: deleteUserError } = await supabase.auth.admin.deleteUser(
             userData.user.id
         );
 
-        if (deleteError) {
-            throw new Error(deleteError.message);
+        if (deleteUserError) {
+            throw new Error(deleteUserError.message);
         }
 
         return {
