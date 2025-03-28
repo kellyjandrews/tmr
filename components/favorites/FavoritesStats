@@ -1,0 +1,93 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Heart, Star } from 'lucide-react';
+import { getListingFavoritesCount, getStoreFollowersCount } from '@/actions/favorites';
+
+type ListingStatsProps = {
+    listingId: string;
+    className?: string;
+};
+
+export function ListingFavoritesCount({ listingId, className = '' }: ListingStatsProps) {
+    const [favoritesCount, setFavoritesCount] = useState<number | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchFavoritesCount = async () => {
+            try {
+                setIsLoading(true);
+                const result = await getListingFavoritesCount(listingId);
+
+                if (result.success && typeof result.data === 'number') {
+                    setFavoritesCount(result.data);
+                }
+            } catch (error) {
+                console.error('Error fetching favorites count:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchFavoritesCount();
+    }, [listingId]);
+
+    // Don't show anything if there's no favorites or still loading
+    if (isLoading || favoritesCount === null || favoritesCount === 0) {
+        return null;
+    }
+
+    return (
+        <div className= {`flex items-center text-sm ${className}`
+}>
+    <Heart size={ 16 } className = "mr-1 text-red-500 fill-current" />
+        <span>
+        { favoritesCount } { favoritesCount === 1 ? 'person has' : 'people have' } favorited this item
+            </span>
+            </div>
+  );
+}
+
+type StoreStatsProps = {
+    storeId: string;
+    className?: string;
+};
+
+export function StoreFollowersCount({ storeId, className = '' }: StoreStatsProps) {
+    const [followersCount, setFollowersCount] = useState<number | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchFollowersCount = async () => {
+            try {
+                setIsLoading(true);
+                const result = await getStoreFollowersCount(storeId);
+
+                if (result.success && typeof result.data === 'number') {
+                    setFollowersCount(result.data);
+                }
+            } catch (error) {
+                console.error('Error fetching followers count:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchFollowersCount();
+    }, [storeId]);
+
+    // Don't show anything if there's no followers or still loading
+    if (isLoading || followersCount === null || followersCount === 0) {
+        return null;
+    }
+
+    return (
+        <div className= {`flex items-center text-sm ${className}`
+}>
+    <Star size={ 16 } className = "mr-1 text-yellow-500 fill-current" />
+        <span>
+        { followersCount } { followersCount === 1 ? 'follower' : 'followers' }
+</span>
+    </div>
+  );
+}
