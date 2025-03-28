@@ -4,6 +4,7 @@ import { createSession } from '@/utils/supabase/serverSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import FavoritesClient from '@/components/favorites/FavoritesClient';
 import { getWishlist, getFollowedStores } from '@/actions/favorites';
+import type { WishlistWithListing, FollowWithStore } from '@/types/favorites';
 
 export const metadata = {
   title: 'Favorites | Dashboard',
@@ -23,8 +24,8 @@ export default async function FavoritesPage() {
   const wishlistResult = await getWishlist();
   const followedStoresResult = await getFollowedStores();
 
-  const wishlistItems = wishlistResult.success ? wishlistResult.data || [] : [];
-  const followedStores = followedStoresResult.success ? followedStoresResult.data || [] : [];
+  const wishlistItems: WishlistWithListing[] = wishlistResult.success ? wishlistResult.data || [] : [];
+  const followedStores: FollowWithStore[] = followedStoresResult.success ? followedStoresResult.data || [] : [];
 
   return (
     <DashboardPageWrapper pageName="My Favorites">

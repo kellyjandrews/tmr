@@ -10,5 +10,5 @@ export * from './cart';
 export * from './order';
 export * from './review';
 export * from './message';
-export * from './interaction';
+export * from './favorites';
 export * from './api';

@@ -3,8 +3,14 @@
 
 import { createSession } from '@/utils/supabase/serverSide';
 import { revalidatePath } from 'next/cache';
+import { mapWishlistResponsesToTyped, mapFollowedStoresResponsesToTyped } from '@/utils/favorites';
 import type { ActionResponse } from '@/types/common';
-import type { WishlistWithListing, FollowWithStore } from '@/types/interaction';
+import type {
+    WishlistWithListing,
+    FollowWithStore,
+    WishlistItemResponse,
+    FollowedStoreResponse
+} from '@/types/favorites';
 
 /**
  * Add a listing to the user's wishlist
@@ -182,32 +188,12 @@ export async function getWishlist(): Promise<ActionResponse<WishlistWithListing[
             throw new Error(wishlistError.message);
         }
 
-        // Format the data to match the expected WishlistWithListing type
-        const formattedItems: WishlistWithListing[] = data.map(item => ({
-            id: item.id,
-            user_id: item.user_id,
-            listing_id: item.listing_id,
-            notes: item.notes,
-            created_at: item.created_at,
-            listing: {
-                id: item.listing_id,
-                name: item.listing_name,
-                slug: item.listing_slug,
-                description: item.listing_description,
-                price: item.listing_price,
-                image_url: item.listing_image_url,
-                status: item.listing_status,
-                stores: {
-                    id: item.store_id,
-                    name: item.store_name,
-                    slug: item.store_slug
-                }
-            }
-        }));
+        // Convert the raw responses to typed objects
+        const typedItems = mapWishlistResponsesToTyped(data as WishlistItemResponse[]);
 
         return {
             success: true,
-            data: formattedItems
+            data: typedItems
         };
     } catch (error) {
         console.error('Error fetching wishlist:', error);
@@ -394,24 +380,12 @@ export async function getFollowedStores(): Promise<ActionResponse<FollowWithStor
             throw new Error(followsError.message);
         }
 
-        // Format the data to match the expected FollowWithStore type
-        const formattedStores: FollowWithStore[] = data.map(item => ({
-            id: item.id,
-            user_id: item.user_id,
-            store_id: item.store_id,
-            created_at: item.created_at,
-            store: {
-                id: item.store_id,
-                name: item.store_name,
-                slug: item.store_slug,
-                description: item.store_description,
-                location: item.store_location
-            }
-        }));
+        // Convert the raw responses to typed objects
+        const typedStores = mapFollowedStoresResponsesToTyped(data as FollowedStoreResponse[]);
 
         return {
             success: true,
-            data: formattedStores
+            data: typedStores
         };
     } catch (error) {
         console.error('Error fetching followed stores:', error);
