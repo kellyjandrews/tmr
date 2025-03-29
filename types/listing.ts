@@ -2,6 +2,7 @@
 import type { UUID, BaseEntity } from './common';
 import type { Category } from './category';
 import type { Store } from './store';
+import type { ListingShippingDetails } from './sproc-types';
 
 // Base listing data structure that matches the PostgreSQL listing_data type
 export interface ListingData {
@@ -37,7 +38,7 @@ export interface Listing extends BaseEntity {
     categories?: Category[];
     stores?: Store;
     images?: string[];
-    shipping?: ListingShipping | null;
+    shipping?: ListingShippingDetails | null;
 }
 
 // Full listing result that matches the PostgreSQL listing_result type
@@ -99,6 +100,15 @@ export interface GetListingForEditResult {
     shipping: ListingShipping;
 }
 
+// Pagination result for listings
+export interface PaginatedListings {
+    listings: Listing[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    hasMore: boolean;
+}
+
 // Parameters for create_listing stored procedure
 export interface CreateListingParams {
     p_listing: ListingData;
@@ -140,15 +150,6 @@ export type CreateListingResponse = StoredProcedureResponse<ListingResult>;
 export type UpdateListingResponse = StoredProcedureResponse<ListingResult>;
 export type DeleteListingResponse = StoredProcedureResponse<boolean>;
 export type GetListingForEditResponse = StoredProcedureResponse<GetListingForEditResult>;
-
-// Utility type for pagination
-export interface PaginatedListings {
-    items: ListingResult[];
-    total: number;
-    page: number;
-    limit: number;
-    hasMore: boolean;
-}
 
 // Options for fetching listings
 export interface FetchListingsOptions {

@@ -19,6 +19,7 @@ import {
 import {supabaseLoader} from '@/utils/supabase/clientSide';
 import type { Category } from '@/types';
 import type { ListingFormData } from '@/types';
+import { uploadListingImage, deleteListingImage} from '@/actions/listings-image-upload';
 
 type FormSection = 'basic' | 'description' | 'images' | 'categories' | 'pricing' | 'status';
 
@@ -118,8 +119,8 @@ export default function ListingForm({
       const file = files[0];
       
       // Import the uploadListingImage function dynamically
-      const { uploadListingImage } = await import('@/actions/listings-manage');
-      
+      // const { uploadListingImage } = await import('@/actions/listings-manage');
+
       const result = await uploadListingImage(file);
       
       if (!result.success) {
@@ -158,7 +159,7 @@ export default function ListingForm({
   const handleRemoveImage = async (imageUrl: string) => {
     try {
       // Import the deleteListingImage function dynamically
-      const { deleteListingImage } = await import('@/actions/listings-manage');
+      // const { deleteListingImage } = await import('@/actions/listings-manage');
       
       // We don't want to block the UI, so we'll just log any errors
       deleteListingImage(imageUrl).catch(error => {

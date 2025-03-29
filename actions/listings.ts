@@ -2,67 +2,43 @@
 'use server';
 
 import { createSession } from '@/utils/supabase/serverSide';
+import {
+    mapDbListingToListing,
+    mapListingDetailToListing,
+    mapFetchListingsResponse
+} from '@/utils/listings';
 import type { FetchListingsOptions, Listing } from '@/types/listing';
 import type { ActionResponse } from '@/types/common';
-import type { Category } from '@/types/category';
 import type {
-    ListingWithStore,
     FetchListingsResponse,
     GetFeaturedListingsResponse,
     GetListingByIdResponse
 } from '@/types/sproc-types';
+import type { SupabaseClient, PostgrestSingleResponse } from '@supabase/supabase-js';
 
-/**
- * Convert database result to Listing type
- */
-function mapDbListingToListing(dbListing: ListingWithStore): Listing {
+let cachedSupabase: null | SupabaseClient = null;
+async function getSupabaseClient() {
+    if (!cachedSupabase) {
+        cachedSupabase = await createSession();
+    }
+    return cachedSupabase;
+}
+
+// Centralized error handler
+function handleError<T>(error: unknown, operation: string): ActionResponse<T> {
+    console.error(`Error in ${operation}:`, error);
     return {
-        id: dbListing.id,
-        store_id: dbListing.store_id,
-        name: dbListing.name,
-        description: dbListing.description,
-        price: dbListing.price,
-        quantity: dbListing.quantity,
-        status: dbListing.status,
-        image_url: dbListing.image_url,
-        slug: dbListing.slug,
-        category_id: dbListing.category_id || undefined,
-        views_count: dbListing.views_count,
-        featured: dbListing.featured,
-        is_digital: dbListing.is_digital,
-        created_at: dbListing.created_at,
-        updated_at: dbListing.updated_at,
-        stores: {
-            id: dbListing.store_id,
-            name: dbListing.store_name,
-            slug: dbListing.store_slug,
-            user_id: dbListing.store_user_id
-        }
+        success: false,
+        error: error instanceof Error ? error.message : 'An unknown error occurred'
     };
 }
 
-/**
- * Convert category from stored procedure to Category type
- */
-function mapSprocCategoryToCategory(cat: { id: string; name: string; slug: string }): Category {
-    return {
-        id: cat.id,
-        name: cat.name,
-        slug: cat.slug,
-        description: null,
-        parent_id: null,
-        display_order: 0,
-        is_featured: false,
-        created_at: '',
-        updated_at: ''
-    };
-}
 
 /**
  * Fetch listings with filters and pagination
  */
 export async function fetchListings(options: FetchListingsOptions = {}): Promise<ActionResponse<Listing[]>> {
-    const supabase = await createSession();
+    const supabase = await getSupabaseClient();
 
     try {
         const {
@@ -78,37 +54,30 @@ export async function fetchListings(options: FetchListingsOptions = {}): Promise
             status = 'active',
         } = options;
 
-        // Call the stored procedure
-        const { data, error } = await supabase.rpc<FetchListingsResponse>('fetch_listings', {
-            store_id_param: storeId || null,
-            category_id_param: categoryId || null,
+        const { data, error } = await supabase.rpc<string, FetchListingsResponse[]>('fetch_listings', {
+            store_id_param: storeId ?? null,
+            category_id_param: categoryId ?? null,
             limit_param: limit,
             offset_param: offset,
             sort_by_param: sortBy,
             sort_order_param: sortOrder,
-            search_param: search || null,
-            min_price_param: minPrice || null,
-            max_price_param: maxPrice || null,
+            search_param: search ?? null,
+            min_price_param: minPrice ?? null,
+            max_price_param: maxPrice ?? null,
             status_param: status
         });
 
-        if (error) throw new Error(error.message);
+        if (error) throw error;
 
-        // Extract listings and count from the results
-        const listings = data?.map(item => mapDbListingToListing(item.listing)) || [];
-        const count = data?.length > 0 ? Number(data[0].total_count) : 0;
+        const { listings, totalCount } = mapFetchListingsResponse(data as FetchListingsResponse[]);
 
         return {
             success: true,
             data: listings,
-            count
+            count: totalCount
         };
     } catch (error) {
-        console.error('Error fetching listings:', error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'An unknown error occurred'
-        };
+        return handleError(error, 'fetchListings');
     }
 }
 
@@ -116,29 +85,21 @@ export async function fetchListings(options: FetchListingsOptions = {}): Promise
  * Get featured listings (newest active listings)
  */
 export async function getFeaturedListings(limit = 4): Promise<ActionResponse<Listing[]>> {
-    const supabase = await createSession();
+    const supabase = await getSupabaseClient();
 
     try {
-        // Call the stored procedure
-        const { data, error } = await supabase.rpc<GetFeaturedListingsResponse>('get_featured_listings', {
+        const { data, error } = await supabase.rpc<string, GetFeaturedListingsResponse>('get_featured_listings', {
             limit_param: limit
-        });
+        }) as PostgrestSingleResponse<GetFeaturedListingsResponse>;
 
-        if (error) throw new Error(error.message);
-
-        // Map the results to Listing type
-        const listings = data?.map(item => mapDbListingToListing(item)) || [];
+        if (error) throw error;
 
         return {
             success: true,
-            data: listings
+            data: data?.map(mapDbListingToListing) || []
         };
     } catch (error) {
-        console.error('Error fetching featured listings:', error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'An unknown error occurred'
-        };
+        return handleError(error, 'getFeaturedListings');
     }
 }
 
@@ -146,49 +107,34 @@ export async function getFeaturedListings(limit = 4): Promise<ActionResponse<Lis
  * Get a single listing by ID with full details
  */
 export async function getListingById(listingId: string): Promise<ActionResponse<Listing>> {
-    const supabase = await createSession();
+    const supabase = await getSupabaseClient();
 
     try {
-        // Call the stored procedure
-        const { data, error } = await supabase.rpc<GetListingByIdResponse>('get_listing_by_id', {
-            listing_id_param: listingId
-        });
+        const [listingResult] = await Promise.all([
+            supabase.rpc<string, GetListingByIdResponse>('get_listing_by_id', {
+                listing_id_param: listingId
+            }),
+            supabase.rpc<string, GetListingByIdResponse>('increment_listing_view', {
+                listing_id_param: listingId
+            })
+        ]);
 
-        if (error) throw new Error(error.message);
-        if (!data || data.length === 0) {
+        const { data, error } = listingResult as PostgrestSingleResponse<GetListingByIdResponse[]>;
+
+        if (error) throw error;
+        if (!data?.length) {
             return {
                 success: false,
                 error: 'Listing not found'
             };
         }
 
-        // Map the result to Listing type
-        const listingData = data[0];
-        const listing = mapDbListingToListing(listingData.listing_details);
-
-        // Add categories, images, and shipping
-        listing.categories = listingData.categories?.map(cat =>
-            mapSprocCategoryToCategory(cat)
-        ) || [];
-
-        listing.images = listingData.images || [];
-        listing.shipping = listingData.shipping || null;
-
-        // Increment view count
-        await supabase.rpc('increment_listing_view', {
-            listing_id_param: listingId
-        });
-
         return {
             success: true,
-            data: listing
+            data: mapListingDetailToListing(data[0])
         };
     } catch (error) {
-        console.error('Error fetching listing by ID:', error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'An unknown error occurred'
-        };
+        return handleError(error, 'getListingById');
     }
 }
 
@@ -196,78 +142,71 @@ export async function getListingById(listingId: string): Promise<ActionResponse<
  * Search listings with full text search
  */
 export async function searchListings(query: string, limit = 10): Promise<ActionResponse<Listing[]>> {
-    return await fetchListings({ search: query, limit });
+    return fetchListings({ search: query, limit });
 }
 
 /**
  * Get listings by category
  */
-export async function getListingsByCategory(categoryId: string, limit = 10, offset = 0): Promise<ActionResponse<Listing[]>> {
-    return await fetchListings({ categoryId, limit, offset });
+export async function getListingsByCategory(
+    categoryId: string,
+    limit = 10,
+    offset = 0
+): Promise<ActionResponse<Listing[]>> {
+    return fetchListings({ categoryId, limit, offset });
 }
 
 /**
  * Get related listings (same category or from same store)
  */
 export async function getRelatedListings(listingId: string, limit = 4): Promise<ActionResponse<Listing[]>> {
-    const supabase = await createSession();
+    const supabase = await getSupabaseClient();
 
     try {
-        // Call the stored procedure
-        const { data, error } = await supabase.rpc<GetFeaturedListingsResponse>('get_related_listings', {
+        const { data, error } = await supabase.rpc<string, GetFeaturedListingsResponse>('get_related_listings', {
             listing_id_param: listingId,
             limit_param: limit
-        });
+        }) as PostgrestSingleResponse<GetFeaturedListingsResponse>;
 
-        if (error) throw new Error(error.message);
-
-        // Map the results to Listing type
-        const listings = data?.map(item => mapDbListingToListing(item)) || [];
+        if (error) throw error;
 
         return {
             success: true,
-            data: listings
+            data: data?.map(mapDbListingToListing) || []
         };
     } catch (error) {
-        console.error('Error fetching related listings:', error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'An unknown error occurred'
-        };
+        return handleError(error, 'getRelatedListings');
     }
 }
 
 /**
  * Get listings by category slug
  */
-export async function getListingsByCategorySlug(slug: string, limit = 10, offset = 0): Promise<ActionResponse<Listing[]>> {
-    const supabase = await createSession();
+export async function getListingsByCategorySlug(
+    slug: string,
+    limit = 10,
+    offset = 0
+): Promise<ActionResponse<Listing[]>> {
+    const supabase = await getSupabaseClient();
 
     try {
-        // Call the stored procedure
-        const { data, error } = await supabase.rpc<FetchListingsResponse>('get_listings_by_category_slug', {
+        const { data, error } = await supabase.rpc<string, FetchListingsResponse[]>('get_listings_by_category_slug', {
             slug_param: slug,
             limit_param: limit,
             offset_param: offset
         });
 
-        if (error) throw new Error(error.message);
+        if (error) throw error;
 
-        // Extract listings from the results
-        const listings = data?.map(item => mapDbListingToListing(item.listing)) || [];
-        const count = data?.length > 0 ? Number(data[0].total_count) : 0;
+        const { listings, totalCount } = mapFetchListingsResponse(data as FetchListingsResponse[]);
 
         return {
             success: true,
             data: listings,
-            count
+            count: totalCount
         };
     } catch (error) {
-        console.error('Error fetching listings by category slug:', error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'An unknown error occurred'
-        };
+        return handleError(error, 'getListingsByCategorySlug');
     }
 }
 
@@ -275,36 +214,26 @@ export async function getListingsByCategorySlug(slug: string, limit = 10, offset
  * Get a single listing by slug with full details
  */
 export async function getListingBySlug(slug: string): Promise<ActionResponse<Listing>> {
-    const supabase = await createSession();
+    const supabase = await getSupabaseClient();
 
     try {
-        // Call the stored procedure
-        const { data, error } = await supabase.rpc<GetListingByIdResponse>('get_listing_by_slug', {
+        const { data, error } = await supabase.rpc<string, GetListingByIdResponse[]>('get_listing_by_slug', {
             slug_param: slug
-        });
+        }) as PostgrestSingleResponse<GetListingByIdResponse[]>;
 
-        if (error) throw new Error(error.message);
-        if (!data || data.length === 0) {
+        if (error) throw error;
+
+        if (!data?.length) {
             return {
                 success: false,
                 error: 'Listing not found'
             };
         }
 
-        // Map the result to Listing type
-        const listingData = data[0];
-        const listing = mapDbListingToListing(listingData.listing_details);
+        const listing = mapListingDetailToListing(data[0]);
 
-        // Add categories, images, and shipping
-        listing.categories = listingData.categories?.map(cat =>
-            mapSprocCategoryToCategory(cat)
-        ) || [];
-
-        listing.images = listingData.images || [];
-        listing.shipping = listingData.shipping || null;
-
-        // Increment view count
-        await supabase.rpc('increment_listing_view', {
+        // Increment view count asynchronously
+        void supabase.rpc('increment_listing_view', {
             listing_id_param: listing.id
         });
 
@@ -313,11 +242,7 @@ export async function getListingBySlug(slug: string): Promise<ActionResponse<Lis
             data: listing
         };
     } catch (error) {
-        console.error('Error fetching listing by slug:', error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'An unknown error occurred'
-        };
+        return handleError(error, 'getListingBySlug');
     }
 }
 
@@ -325,24 +250,20 @@ export async function getListingBySlug(slug: string): Promise<ActionResponse<Lis
  * Increment listing view count
  */
 export async function incrementListingView(listingId: string): Promise<ActionResponse<boolean>> {
-    const supabase = await createSession();
+    const supabase = await getSupabaseClient();
 
     try {
-        const { data, error } = await supabase.rpc<boolean>('increment_listing_view', {
+        const { data, error } = await supabase.rpc<string, boolean>('increment_listing_view', {
             listing_id_param: listingId
         });
 
-        if (error) throw new Error(error.message);
+        if (error) throw error;
 
         return {
             success: true,
             data: !!data
         };
     } catch (error) {
-        console.error('Error incrementing listing view count:', error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'An unknown error occurred'
-        };
+        return handleError(error, 'incrementListingView');
     }
 }

@@ -24,6 +24,7 @@ export interface ListingWithStore {
     store_name: string;
     store_slug: string;
     store_user_id: UUID;
+    store_created_at: string;
 }
 
 /**

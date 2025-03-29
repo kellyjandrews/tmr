@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateListing } from '@/actions/listings-manage';
 import ListingForm from '@/components/listings/ListingForm';
-import type { ListingFormData, Listing } from '@/types/listing';
+import type { ListingFormData, ListingData } from '@/types/listing';
 import type { Category } from '@/types/category';
 
 type EditListingFormProps = {
@@ -42,7 +42,7 @@ export default function EditListingForm({
         throw new Error(result.error || 'Failed to update listing');
       }
 
-      const {data}  = result as {data:Listing}
+      const {data}  = result as {data:ListingData}
 
       // Get the slug from the response or fallback to existing slug
       const updatedSlug = data.slug || listing.slug;

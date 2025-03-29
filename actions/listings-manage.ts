@@ -4,10 +4,12 @@
 import { z } from 'zod';
 import { createSession } from '@/utils/supabase/serverSide';
 import { revalidatePath } from 'next/cache';
+import { generateSlug } from '@/utils/listings';
 import type {
     ListingData,
     ListingImage,
-    ListingFormData
+    ListingFormData,
+    ListingStatus
 } from '@/types/listing';
 import type { ActionResponse } from '@/types/common';
 
@@ -184,6 +186,45 @@ export async function deleteListing(listingId: string): Promise<ActionResponse<b
     }
 }
 
+export async function changeListingStatus(listingId: string, status: ListingStatus): Promise<ActionResponse<ListingFormData>> {
+    const supabase = await createSession();
+
+    try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) {
+            return { success: false, error: 'Authentication required' };
+        }
+
+        const { data, error } = await supabase.rpc('update_listing_status', {
+            p_listing_id: listingId,
+            p_status: status,
+            p_user_id: userData.user.id
+        });
+
+        if (error) throw error;
+
+        if (!data) {
+            return {
+                success: false,
+                error: 'Listing not found or you do not have permission to update it'
+            };
+        }
+
+        revalidatePath('/dashboard/sell');
+        revalidatePath('/dashboard');
+        revalidatePath('/marketplace');
+
+        return {
+            success: true,
+            message: 'Listing status updated successfully',
+            data
+        };
+    } catch (error) {
+        return handleError(error);
+    }
+
+}
+
 export async function getListingForEdit(listingId: string): Promise<ActionResponse<ListingFormData>> {
     const supabase = await createSession();
 
@@ -221,16 +262,6 @@ export async function getListingForEdit(listingId: string): Promise<ActionRespon
     }
 }
 
-/**
- * Uploads an image file for a listing
- */
-export { uploadListingImage } from '@/actions/listings-image-upload';
-
-/**
- * Deletes an image file for a listing
- */
-export { deleteListingImage } from '@/actions/listings-image-upload';
-
 function handleError(error: unknown) {
     if (error instanceof z.ZodError) {
         return {
@@ -243,12 +274,4 @@ function handleError(error: unknown) {
         success: false,
         error: error instanceof Error ? error.message : 'An unknown error occurred'
     };
-}
-
-// Helper function to generate slug from name
-function generateSlug(name: string): string {
-    return name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
 }
