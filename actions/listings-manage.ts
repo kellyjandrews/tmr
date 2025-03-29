@@ -5,21 +5,15 @@ import { z } from 'zod';
 import { createSession } from '@/utils/supabase/serverSide';
 import { revalidatePath } from 'next/cache';
 import type {
-    CreateListingParams,
-    UpdateListingParams,
     ListingData,
     ListingImage,
-    CreateListingResponse,
-    UpdateListingResponse,
-    DeleteListingResponse,
-    GetListingForEditResponse,
-    ActionResponse,
     ListingFormData
-} from '@/types';
+} from '@/types/listing';
+import type { ActionResponse } from '@/types/common';
 
 // Zod schema for validation
 const listingSchema = z.object({
-    id: z.string().optional(),
+    id: z.string().uuid().optional(),
     name: z.string().min(1, 'Name is required'),
     description: z.string(),
     price: z.number().positive('Price must be greater than 0'),
@@ -40,7 +34,7 @@ export async function createListing(formData: ListingFormData): Promise<ActionRe
         const { data: userData } = await supabase.auth.getUser();
 
         if (!userData.user) {
-            return { success: false, error: 'Authentication failed' };
+            return { success: false, error: 'Authentication required' };
         }
 
         const listingData: ListingData = {
@@ -59,23 +53,20 @@ export async function createListing(formData: ListingFormData): Promise<ActionRe
             display_order: index
         }));
 
-        const params: CreateListingParams = {
+        const { data, error } = await supabase.rpc('create_listing', {
             p_listing: listingData,
             p_categories: validatedData.categories,
             p_images: images,
             p_shipping_cost: validatedData.shipping_cost,
             p_user_id: userData.user.id
-        };
-
-        const { data, error } = await supabase
-            .rpc('create_listing', params) as CreateListingResponse;
+        });
 
         if (error) throw error;
 
         if (!data) {
             return {
                 success: false,
-                error: 'Listing not found'
+                error: 'Failed to create listing'
             };
         }
 
@@ -104,7 +95,7 @@ export async function updateListing(formData: ListingFormData): Promise<ActionRe
 
         const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) {
-            return { success: false, error: 'Authentication failed' };
+            return { success: false, error: 'Authentication required' };
         }
 
         const listingData: ListingData = {
@@ -123,24 +114,21 @@ export async function updateListing(formData: ListingFormData): Promise<ActionRe
             display_order: index
         }));
 
-        const params: UpdateListingParams = {
+        const { data, error } = await supabase.rpc('update_listing', {
             p_listing_id: validatedData.id,
             p_listing: listingData,
             p_categories: validatedData.categories,
             p_images: images,
             p_shipping_cost: validatedData.shipping_cost,
             p_user_id: userData.user.id
-        };
-
-        const { data, error } = await supabase
-            .rpc('update_listing', params) as UpdateListingResponse;
+        });
 
         if (error) throw error;
 
         if (!data) {
             return {
                 success: false,
-                error: 'Listing not found'
+                error: 'Listing not found or you do not have permission to update it'
             };
         }
 
@@ -165,21 +153,20 @@ export async function deleteListing(listingId: string): Promise<ActionResponse<b
     try {
         const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) {
-            return { success: false, error: 'Authentication failed' };
+            return { success: false, error: 'Authentication required' };
         }
 
-        const { data, error } = await supabase
-            .rpc('delete_listing', {
-                p_listing_id: listingId,
-                p_user_id: userData.user.id
-            }) as DeleteListingResponse;
+        const { data, error } = await supabase.rpc('delete_listing', {
+            p_listing_id: listingId,
+            p_user_id: userData.user.id
+        });
 
         if (error) throw error;
 
         if (!data) {
             return {
                 success: false,
-                error: 'Listing not found'
+                error: 'Listing not found or you do not have permission to delete it'
             };
         }
 
@@ -203,21 +190,20 @@ export async function getListingForEdit(listingId: string): Promise<ActionRespon
     try {
         const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) {
-            return { success: false, error: 'Authentication failed' };
+            return { success: false, error: 'Authentication required' };
         }
 
-        const { data, error } = await supabase
-            .rpc('get_listing_for_edit', {
-                p_listing_id: listingId,
-                p_user_id: userData.user.id
-            }) as GetListingForEditResponse;
+        const { data, error } = await supabase.rpc('get_listing_for_edit', {
+            p_listing_id: listingId,
+            p_user_id: userData.user.id
+        });
 
         if (error) throw error;
 
         if (!data) {
             return {
                 success: false,
-                error: 'Listing not found'
+                error: 'Listing not found or you do not have permission to edit it'
             };
         }
 
@@ -226,7 +212,7 @@ export async function getListingForEdit(listingId: string): Promise<ActionRespon
             data: {
                 ...data.listing,
                 categories: data.categories || [],
-                images: (data.images || []).map(img => img.image_url),
+                images: (data.images || []).map((img: { image_url: string; }) => img.image_url),
                 shipping_cost: data.shipping?.flat_rate || 0
             }
         };
@@ -234,6 +220,16 @@ export async function getListingForEdit(listingId: string): Promise<ActionRespon
         return handleError(error);
     }
 }
+
+/**
+ * Uploads an image file for a listing
+ */
+export { uploadListingImage } from '@/actions/listings-image-upload';
+
+/**
+ * Deletes an image file for a listing
+ */
+export { deleteListingImage } from '@/actions/listings-image-upload';
 
 function handleError(error: unknown) {
     if (error instanceof z.ZodError) {

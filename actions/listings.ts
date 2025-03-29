@@ -4,6 +4,59 @@
 import { createSession } from '@/utils/supabase/serverSide';
 import type { FetchListingsOptions, Listing } from '@/types/listing';
 import type { ActionResponse } from '@/types/common';
+import type { Category } from '@/types/category';
+import type {
+    ListingWithStore,
+    FetchListingsResponse,
+    GetFeaturedListingsResponse,
+    GetListingByIdResponse
+} from '@/types/sproc-types';
+
+/**
+ * Convert database result to Listing type
+ */
+function mapDbListingToListing(dbListing: ListingWithStore): Listing {
+    return {
+        id: dbListing.id,
+        store_id: dbListing.store_id,
+        name: dbListing.name,
+        description: dbListing.description,
+        price: dbListing.price,
+        quantity: dbListing.quantity,
+        status: dbListing.status,
+        image_url: dbListing.image_url,
+        slug: dbListing.slug,
+        category_id: dbListing.category_id || undefined,
+        views_count: dbListing.views_count,
+        featured: dbListing.featured,
+        is_digital: dbListing.is_digital,
+        created_at: dbListing.created_at,
+        updated_at: dbListing.updated_at,
+        stores: {
+            id: dbListing.store_id,
+            name: dbListing.store_name,
+            slug: dbListing.store_slug,
+            user_id: dbListing.store_user_id
+        }
+    };
+}
+
+/**
+ * Convert category from stored procedure to Category type
+ */
+function mapSprocCategoryToCategory(cat: { id: string; name: string; slug: string }): Category {
+    return {
+        id: cat.id,
+        name: cat.name,
+        slug: cat.slug,
+        description: null,
+        parent_id: null,
+        display_order: 0,
+        is_featured: false,
+        created_at: '',
+        updated_at: ''
+    };
+}
 
 /**
  * Fetch listings with filters and pagination
@@ -25,65 +78,33 @@ export async function fetchListings(options: FetchListingsOptions = {}): Promise
             status = 'active',
         } = options;
 
-        // Start building the query
-        let query = supabase
-            .from('listings')
-            .select('*, stores(id, name, slug, user_id)', { count: 'exact' })
-            .order(sortBy, { ascending: sortOrder === 'asc' })
-            .range(offset, offset + limit - 1);
-
-        // Add filters if provided
-        if (storeId) {
-            query = query.eq('store_id', storeId);
-        }
-
-        if (categoryId) {
-            // We need to use a subquery for filtering by category since we're using a junction table
-            const { data: listingIds } = await supabase
-                .from('listing_categories')
-                .select('listing_id')
-                .eq('category_id', categoryId);
-
-            if (listingIds && listingIds.length > 0) {
-                const ids = listingIds.map(item => item.listing_id);
-                query = query.in('id', ids);
-            } else {
-                // No listings in this category, return empty result
-                return {
-                    success: true,
-                    data: [],
-                    count: 0
-                };
-            }
-        }
-
-        if (status) {
-            query = query.eq('status', status);
-        }
-
-        if (minPrice !== undefined) {
-            query = query.gte('price', minPrice);
-        }
-
-        if (maxPrice !== undefined) {
-            query = query.lte('price', maxPrice);
-        }
-
-        if (search) {
-            // Use the built-in text search for basic search functionality
-            query = query.ilike('name', `%${search}%`);
-        }
-
-        const { data, error, count } = await query;
+        // Call the stored procedure
+        const { data, error } = await supabase.rpc<FetchListingsResponse>('fetch_listings', {
+            store_id_param: storeId || null,
+            category_id_param: categoryId || null,
+            limit_param: limit,
+            offset_param: offset,
+            sort_by_param: sortBy,
+            sort_order_param: sortOrder,
+            search_param: search || null,
+            min_price_param: minPrice || null,
+            max_price_param: maxPrice || null,
+            status_param: status
+        });
 
         if (error) throw new Error(error.message);
 
+        // Extract listings and count from the results
+        const listings = data?.map(item => mapDbListingToListing(item.listing)) || [];
+        const count = data?.length > 0 ? Number(data[0].total_count) : 0;
+
         return {
             success: true,
-            data: data as Listing[],
-            count: count || 0
+            data: listings,
+            count
         };
     } catch (error) {
+        console.error('Error fetching listings:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'An unknown error occurred'
@@ -95,12 +116,30 @@ export async function fetchListings(options: FetchListingsOptions = {}): Promise
  * Get featured listings (newest active listings)
  */
 export async function getFeaturedListings(limit = 4): Promise<ActionResponse<Listing[]>> {
-    return fetchListings({
-        limit,
-        sortBy: 'created_at',
-        sortOrder: 'desc',
-        status: 'active'
-    });
+    const supabase = await createSession();
+
+    try {
+        // Call the stored procedure
+        const { data, error } = await supabase.rpc<GetFeaturedListingsResponse>('get_featured_listings', {
+            limit_param: limit
+        });
+
+        if (error) throw new Error(error.message);
+
+        // Map the results to Listing type
+        const listings = data?.map(item => mapDbListingToListing(item)) || [];
+
+        return {
+            success: true,
+            data: listings
+        };
+    } catch (error) {
+        console.error('Error fetching featured listings:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'An unknown error occurred'
+        };
+    }
 }
 
 /**
@@ -110,48 +149,42 @@ export async function getListingById(listingId: string): Promise<ActionResponse<
     const supabase = await createSession();
 
     try {
-        // Get the main listing data
-        const { data, error } = await supabase
-            .from('listings')
-            .select('*, stores(id, name, slug, user_id)')
-            .eq('id', listingId)
-            .single();
+        // Call the stored procedure
+        const { data, error } = await supabase.rpc<GetListingByIdResponse>('get_listing_by_id', {
+            listing_id_param: listingId
+        });
 
         if (error) throw new Error(error.message);
+        if (!data || data.length === 0) {
+            return {
+                success: false,
+                error: 'Listing not found'
+            };
+        }
 
-        // Get categories for the listing
-        const { data: categories } = await supabase
-            .from('listing_categories')
-            .select('categories(id, name)')
-            .eq('listing_id', listingId);
+        // Map the result to Listing type
+        const listingData = data[0];
+        const listing = mapDbListingToListing(listingData.listing_details);
 
-        // Get all images for the listing
-        const { data: images } = await supabase
-            .from('listing_images')
-            .select('image_url, display_order')
-            .eq('listing_id', listingId)
-            .order('display_order');
+        // Add categories, images, and shipping
+        listing.categories = listingData.categories?.map(cat =>
+            mapSprocCategoryToCategory(cat)
+        ) || [];
 
-        // Get shipping info
-        const { data: shipping } = await supabase
-            .from('listing_shipping')
-            .select('*')
-            .eq('listing_id', listingId)
-            .single();
+        listing.images = listingData.images || [];
+        listing.shipping = listingData.shipping || null;
 
-        // Combine the data
-        const enrichedListing = {
-            ...data,
-            categories: categories ? categories.map(c => c.categories) : [],
-            images: images ? images.map(i => i.image_url) : [],
-            shipping: shipping || null
-        };
+        // Increment view count
+        await supabase.rpc('increment_listing_view', {
+            listing_id_param: listingId
+        });
 
         return {
             success: true,
-            data: enrichedListing as Listing
+            data: listing
         };
     } catch (error) {
+        console.error('Error fetching listing by ID:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'An unknown error occurred'
@@ -163,14 +196,14 @@ export async function getListingById(listingId: string): Promise<ActionResponse<
  * Search listings with full text search
  */
 export async function searchListings(query: string, limit = 10): Promise<ActionResponse<Listing[]>> {
-    return fetchListings({ search: query, limit });
+    return await fetchListings({ search: query, limit });
 }
 
 /**
  * Get listings by category
  */
 export async function getListingsByCategory(categoryId: string, limit = 10, offset = 0): Promise<ActionResponse<Listing[]>> {
-    return fetchListings({ categoryId, limit, offset });
+    return await fetchListings({ categoryId, limit, offset });
 }
 
 /**
@@ -180,63 +213,23 @@ export async function getRelatedListings(listingId: string, limit = 4): Promise<
     const supabase = await createSession();
 
     try {
-        // First, get the current listing to find its category and store
-        const { data: listing, error: listingError } = await supabase
-            .from('listings')
-            .select('store_id')
-            .eq('id', listingId)
-            .single();
+        // Call the stored procedure
+        const { data, error } = await supabase.rpc<GetFeaturedListingsResponse>('get_related_listings', {
+            listing_id_param: listingId,
+            limit_param: limit
+        });
 
-        if (listingError) throw new Error(listingError.message);
+        if (error) throw new Error(error.message);
 
-        // Get the categories of this listing
-        const { data: listingCategories } = await supabase
-            .from('listing_categories')
-            .select('category_id')
-            .eq('listing_id', listingId);
-
-        const categoryIds = listingCategories ? listingCategories.map(lc => lc.category_id) : [];
-
-        // Find listings with the same categories or from the same store, but not the current listing
-        let query = supabase
-            .from('listings')
-            .select('*, stores(id, name, slug, user_id)')
-            .neq('id', listingId) // Exclude the current listing
-            .eq('status', 'active') // Only active listings
-            .limit(limit);
-
-        if (categoryIds.length > 0) {
-            // Get listings that share categories with our listing
-            const { data: relatedByCategory } = await supabase
-                .from('listing_categories')
-                .select('listing_id')
-                .in('category_id', categoryIds)
-                .neq('listing_id', listingId);
-
-            const relatedListingIds = relatedByCategory ?
-                relatedByCategory.map(item => item.listing_id) : [];
-
-            if (relatedListingIds.length > 0) {
-                // We have listings with same categories
-                query = query.in('id', relatedListingIds);
-            } else {
-                // No category matches, fall back to just store-based relations
-                query = query.eq('store_id', listing.store_id);
-            }
-        } else {
-            // No categories for this listing, use store-based relations
-            query = query.eq('store_id', listing.store_id);
-        }
-
-        const { data: relatedListings, error: relatedError } = await query;
-
-        if (relatedError) throw new Error(relatedError.message);
+        // Map the results to Listing type
+        const listings = data?.map(item => mapDbListingToListing(item)) || [];
 
         return {
             success: true,
-            data: relatedListings as Listing[]
+            data: listings
         };
     } catch (error) {
+        console.error('Error fetching related listings:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'An unknown error occurred'
@@ -251,18 +244,26 @@ export async function getListingsByCategorySlug(slug: string, limit = 10, offset
     const supabase = await createSession();
 
     try {
-        // First get the category ID from the slug
-        const { data: category, error: categoryError } = await supabase
-            .from('categories')
-            .select('id')
-            .eq('slug', slug)
-            .single();
+        // Call the stored procedure
+        const { data, error } = await supabase.rpc<FetchListingsResponse>('get_listings_by_category_slug', {
+            slug_param: slug,
+            limit_param: limit,
+            offset_param: offset
+        });
 
-        if (categoryError) throw new Error(categoryError.message);
+        if (error) throw new Error(error.message);
 
-        // Then get listings with that category ID
-        return await getListingsByCategory(category.id, limit, offset);
+        // Extract listings from the results
+        const listings = data?.map(item => mapDbListingToListing(item.listing)) || [];
+        const count = data?.length > 0 ? Number(data[0].total_count) : 0;
+
+        return {
+            success: true,
+            data: listings,
+            count
+        };
     } catch (error) {
+        console.error('Error fetching listings by category slug:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'An unknown error occurred'
@@ -277,48 +278,68 @@ export async function getListingBySlug(slug: string): Promise<ActionResponse<Lis
     const supabase = await createSession();
 
     try {
-        // Get the main listing data
-        const { data, error } = await supabase
-            .from('listings')
-            .select('*, stores(id, name, slug, user_id)')
-            .eq('slug', slug)
-            .single();
+        // Call the stored procedure
+        const { data, error } = await supabase.rpc<GetListingByIdResponse>('get_listing_by_slug', {
+            slug_param: slug
+        });
 
         if (error) throw new Error(error.message);
+        if (!data || data.length === 0) {
+            return {
+                success: false,
+                error: 'Listing not found'
+            };
+        }
 
-        // Get categories for the listing
-        const { data: categories } = await supabase
-            .from('listing_categories')
-            .select('categories(id, name, slug)')
-            .eq('listing_id', data.id);
+        // Map the result to Listing type
+        const listingData = data[0];
+        const listing = mapDbListingToListing(listingData.listing_details);
 
-        // Get all images for the listing
-        const { data: images } = await supabase
-            .from('listing_images')
-            .select('image_url, display_order')
-            .eq('listing_id', data.id)
-            .order('display_order');
+        // Add categories, images, and shipping
+        listing.categories = listingData.categories?.map(cat =>
+            mapSprocCategoryToCategory(cat)
+        ) || [];
 
-        // Get shipping info
-        const { data: shipping } = await supabase
-            .from('listing_shipping')
-            .select('*')
-            .eq('listing_id', data.id)
-            .single();
+        listing.images = listingData.images || [];
+        listing.shipping = listingData.shipping || null;
 
-        // Combine the data
-        const enrichedListing = {
-            ...data,
-            categories: categories ? categories.map(c => c.categories) : [],
-            images: images ? images.map(i => i.image_url) : [],
-            shipping: shipping || null
-        };
+        // Increment view count
+        await supabase.rpc('increment_listing_view', {
+            listing_id_param: listing.id
+        });
 
         return {
             success: true,
-            data: enrichedListing as Listing
+            data: listing
         };
     } catch (error) {
+        console.error('Error fetching listing by slug:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'An unknown error occurred'
+        };
+    }
+}
+
+/**
+ * Increment listing view count
+ */
+export async function incrementListingView(listingId: string): Promise<ActionResponse<boolean>> {
+    const supabase = await createSession();
+
+    try {
+        const { data, error } = await supabase.rpc<boolean>('increment_listing_view', {
+            listing_id_param: listingId
+        });
+
+        if (error) throw new Error(error.message);
+
+        return {
+            success: true,
+            data: !!data
+        };
+    } catch (error) {
+        console.error('Error incrementing listing view count:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'An unknown error occurred'

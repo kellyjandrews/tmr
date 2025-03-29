@@ -1,4 +1,7 @@
 // types/listing.ts
+import type { UUID, BaseEntity } from './common';
+import type { Category } from './category';
+import type { Store } from './store';
 
 // Base listing data structure that matches the PostgreSQL listing_data type
 export interface ListingData {
@@ -13,6 +16,28 @@ export interface ListingData {
     slug: string;
     created_at?: string;
     updated_at?: string;
+}
+
+// Complete Listing entity
+export interface Listing extends BaseEntity {
+    store_id: UUID;
+    name: string;
+    description: string;
+    price: number;
+    quantity: number;
+    status: ListingStatus;
+    image_url: string;
+    slug: string;
+    category_id?: UUID;
+    views_count: number;
+    featured: boolean;
+    is_digital: boolean;
+
+    // Relations
+    categories?: Category[];
+    stores?: Store;
+    images?: string[];
+    shipping?: ListingShipping | null;
 }
 
 // Full listing result that matches the PostgreSQL listing_result type
@@ -48,7 +73,12 @@ export interface ListingImage {
 
 // Shipping data structure
 export interface ListingShipping {
-    flat_rate: number;
+    flat_rate?: number;
+    free_shipping?: boolean;
+    ships_from?: string;
+    ships_to?: string[];
+    estimated_days_min?: number;
+    estimated_days_max?: number;
 }
 
 // Response type for get_listing_for_edit stored procedure
@@ -118,6 +148,20 @@ export interface PaginatedListings {
     page: number;
     limit: number;
     hasMore: boolean;
+}
+
+// Options for fetching listings
+export interface FetchListingsOptions {
+    storeId?: string;
+    categoryId?: string;
+    limit?: number;
+    offset?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    search?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    status?: ListingStatus;
 }
 
 // Query options for fetching listings
