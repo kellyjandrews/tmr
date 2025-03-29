@@ -19,7 +19,7 @@ CREATE TYPE listing_with_store AS (
     updated_at TIMESTAMPTZ,
     store_name TEXT,
     store_slug TEXT,
-    store_user_id UUID
+    store_user_id UUID,
     store_created_at TEXT
 );
 
@@ -68,7 +68,7 @@ BEGIN
         l.updated_at,
         s.name AS store_name,
         s.slug AS store_slug,
-        s.user_id AS store_user_id
+        s.user_id AS store_user_id,
         s.created_at AS store_created_at
     FROM 
         listings l
