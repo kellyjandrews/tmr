@@ -108,8 +108,7 @@ ALTER TABLE public.listings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can view active listings"
   ON public.listings
   FOR SELECT
-  TO authenticated, anon
-  USING (status = 'active');
+   USING (status = 'active');
 
 -- Store owners can view all their listings regardless of status
 CREATE POLICY "Store owners can view all their listings"

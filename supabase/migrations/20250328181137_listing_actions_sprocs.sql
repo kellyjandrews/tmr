@@ -20,7 +20,7 @@ CREATE TYPE listing_with_store AS (
     store_name TEXT,
     store_slug TEXT,
     store_user_id UUID,
-    store_created_at TEXT
+    store_created_at TIMESTAMPTZ
 );
 
 -- Type for listing category with name
@@ -123,24 +123,26 @@ BEGIN
 
     -- Base query
     query_sql := 'SELECT 
-                    l.id,
-                    l.store_id,
-                    l.name,
-                    l.description,
-                    l.price,
-                    l.quantity,
-                    l.status,
-                    l.image_url,
-                    l.slug,
-                    l.category_id,
-                    l.views_count,
-                    l.featured,
-                    l.is_digital,
-                    l.created_at,
-                    l.updated_at,
-                    s.name AS store_name,
-                    s.slug AS store_slug,
-                    s.user_id AS store_user_id,
+                   ROW(
+                        l.id,
+                        l.store_id,
+                        l.name,
+                        l.description,
+                        l.price,
+                        l.quantity,
+                        l.status,
+                        l.image_url,
+                        l.slug,
+                        l.category_id,
+                        l.views_count,
+                        l.featured,
+                        l.is_digital,
+                        l.created_at,
+                        l.updated_at,
+                        s.name,
+                        s.slug,
+                        s.user_id,
+                        s.created_at)::listing_with_store as listing,
                     COUNT(*) OVER() AS total_count
                 FROM 
                     listings l
@@ -201,6 +203,7 @@ BEGIN
 
     -- Execute query and return results
     RETURN QUERY EXECUTE query_sql;
+    
 END;
 $$;
 
@@ -242,7 +245,8 @@ BEGIN
         l.updated_at,
         s.name,
         s.slug,
-        s.user_id
+        s.user_id,
+        s.created_at
     INTO v_listing
     FROM 
         listings l
@@ -373,7 +377,8 @@ BEGIN
             l.updated_at,
             s.name AS store_name,
             s.slug AS store_slug,
-            s.user_id AS store_user_id
+            s.user_id AS store_user_id,
+            s.created_at as store_created_at
         FROM 
             listings l
         JOIN 
@@ -412,7 +417,8 @@ BEGIN
             l.updated_at,
             s.name AS store_name,
             s.slug AS store_slug,
-            s.user_id AS store_user_id
+            s.user_id AS store_user_id,
+            s.created_at as store_created_at
         FROM 
             listings l
         JOIN 

@@ -62,7 +62,7 @@ export interface GetListingByIdResponse {
  * Response from fetch_listings and get_listings_by_category_slug
  */
 export interface FetchListingsResponse {
-    listing: ListingWithStore;
+    listing: ListingWithStore[];
     total_count: number;
 }
 

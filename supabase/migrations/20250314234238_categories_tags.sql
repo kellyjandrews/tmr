@@ -49,7 +49,6 @@ ALTER TABLE public.tags ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can view categories"
   ON public.categories
   FOR SELECT
-  TO authenticated, anon
   USING (true);
 
 -- Only allow system to modify categories (this will be handled by admin users later)
@@ -63,7 +62,6 @@ CREATE POLICY "System can manage categories"
 CREATE POLICY "Anyone can view tags"
   ON public.tags
   FOR SELECT
-  TO authenticated, anon
   USING (true);
 
 -- Users can create custom tags
