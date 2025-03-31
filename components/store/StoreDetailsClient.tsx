@@ -7,6 +7,7 @@ import { supabaseLoader } from '@/utils/supabase/clientSide';
 import FollowButton from '@/components/store/FollowButton';
 import type { Store } from '@/types/store';
 import type { Listing } from '@/types/listing';
+import CategoryNavMenu from '@/components/layout/NavMenu';
 
 
 type StoreDetailsClientProps = {
@@ -19,8 +20,11 @@ export default function StoreDetailsClient({ store, listings }: StoreDetailsClie
 
   return (
     <>
+    <CategoryNavMenu />
+
       {/* Store header - full width */}
-      <div className="max-w-7xl mx-auto">
+      <div className="bg-purple-800 py-8 px-4 sm:px-6 lg:px-8 text-white">
+        <div className="max-w-7xl mx-auto">
   <h1 className="text-3xl font-bold">{store.name}</h1>
   <div className="flex items-center justify-between"> {/* Add this wrapper div */}
     <div>
@@ -31,15 +35,16 @@ export default function StoreDetailsClient({ store, listings }: StoreDetailsClie
         </p>
       )}
     </div>
-    
+
     {/* Add the follow button */}
     <FollowButton 
       storeId={store.id}
       variant="primary"
     />
   </div>
+  </div>
+
 </div>
-      
       <div className="max-w-7xl mx-auto" />
       
       {/* Tab navigation */}

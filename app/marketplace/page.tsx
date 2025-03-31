@@ -2,6 +2,7 @@
 import { Suspense } from 'react';
 import { fetchListings } from '@/actions/listings';
 import ListingList from '@/components/listings/ListingList';
+import CategoryNavMenu from '@/components/layout/NavMenu';
 
 export const metadata = {
   title: 'Marketplace',
@@ -49,7 +50,7 @@ export default function MarketplacePage() {
           <p className="mt-2 text-purple-200">Discover extraordinary magical items from sellers around the world</p>
         </div>
       </div>
-
+      <CategoryNavMenu />
       <div className="max-w-7xl mx-auto">
         {/* Here we would add filtering controls in the future */}
         <Suspense fallback={<MarketplaceLoading />}>

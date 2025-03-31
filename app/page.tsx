@@ -4,6 +4,7 @@ import ListingList from '@/components/listings/ListingList';
 import { getFeaturedListings } from '@/actions/listings';
 import { getMainCategories } from '@/actions/categories';
 import CategoryGrid from '@/components/layout/CategoryGrid';
+import CategoryNavMenu from '@/components/layout/NavMenu';
 import { Suspense } from 'react';
 
 // Loading fallback for categories
@@ -60,7 +61,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
+      <CategoryNavMenu />
       {/* Featured Products Section - Using our new component */}
       <ListingList 
         title="Featured Listings" 

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { supabaseLoader } from '@/utils/supabase/clientSide';
 import type { Category } from '@/types/category';
 import type { Listing } from '@/types/listing';
+import CategoryNavMenu from '@/components/layout/NavMenu';
 
 type CategoryDetailsClientProps = {
   category: Category;
@@ -26,7 +27,7 @@ export default function CategoryDetailsClient({ category, listings }: CategoryDe
           )}
         </div>
       </div>
-      
+      <CategoryNavMenu />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Category Listings */}
         <h2 className="text-2xl font-bold text-purple-900 mb-6">{category.name} Collection</h2>

@@ -9,6 +9,7 @@ import FavoriteButton from '@/components/listings/FavoriteButton';
 import AddToCartButton from '@/components/cart/AddToCarTButton';
 import ItemInterest from '@/components/cart/ItemInterest';
 import type { Listing } from '@/types/listing';
+import CategoryNavMenu from '@/components/layout/NavMenu';
 
 type ListingDetailsClientProps = {
   listing: Listing;
@@ -30,6 +31,8 @@ export default function ListingDetailsClient({ listing }: ListingDetailsClientPr
   const categories = listing.categories || [];
 
   return (
+    <>
+   <CategoryNavMenu />
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-4">
         <Link href="/marketplace" className="text-purple-700 hover:text-purple-900">
@@ -171,5 +174,6 @@ export default function ListingDetailsClient({ listing }: ListingDetailsClientPr
         </div>
       </div>
     </div>
+    </>
   );
 }
