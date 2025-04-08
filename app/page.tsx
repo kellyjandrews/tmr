@@ -1,39 +1,42 @@
 // app/page.tsx
 import Link from 'next/link';
 import ListingList from '@/components/listings/ListingList';
-import { getFeaturedListings } from '@/actions/listings';
-import { getMainCategories } from '@/actions/categories';
-import CategoryGrid from '@/components/layout/CategoryGrid';
+import { getFeaturedListings, getListingsByCategory } from '@/actions/listings';
+// import { getMainCategories } from '@/actions/categories';
+// import CategoryGrid from '@/components/layout/CategoryGrid';
 import CategoryNavMenu from '@/components/layout/NavMenu';
 import { Suspense } from 'react';
 
 // Loading fallback for categories
-function CategoryGridSkeleton() {
-  return (
-    <section className="py-12 px-4 sm:px-6 lg:px-8 bg-purple-50">
-      <div className="w-full max-w-7xl mx-auto">
-        <h2 className="text-2xl font-bold text-purple-900 mb-6 text-center">Explore Categories</h2>
-        <div className="flex justify-center items-center h-48">
-          <div className="animate-pulse text-purple-500">Loading categories...</div>
-        </div>
-      </div>
-    </section>
-  );
-}
+// function CategoryGridSkeleton() {
+//   return (
+//     <section className="py-12 px-4 sm:px-6 lg:px-8 bg-purple-50">
+//       <div className="w-full max-w-7xl mx-auto">
+//         <h2 className="text-2xl font-bold text-purple-900 mb-6 text-center">Explore Categories</h2>
+//         <div className="flex justify-center items-center h-48">
+//           <div className="animate-pulse text-purple-500">Loading categories...</div>
+//         </div>
+//       </div>
+//     </section>
+//   );
+// }
 
-// Server component to fetch categories
-async function CategoriesSection() {
-  const categoriesResult = await getMainCategories();
-  const categories = categoriesResult.success ? categoriesResult.data : [];
+// // Server component to fetch categories
+// async function CategoriesSection() {
+//   const categoriesResult = await getMainCategories();
+//   const categories = categoriesResult.success ? categoriesResult.data : [];
   
-  return <CategoryGrid initialCategories={categories} />;
-}
+//   return <CategoryGrid initialCategories={categories} />;
+// }
 
 export default async function HomePage() {
   // Fetch featured listings directly in the server component
   const featuredListingsResult = await getFeaturedListings(4);
   const featuredListings = featuredListingsResult.success ? featuredListingsResult.data : [];
-
+  const stageListingsResult = await getListingsByCategory('00000000-0000-0000-0000-000000000001');
+  const stageListings = stageListingsResult.success ? stageListingsResult.data : [];
+  const closeupListingsResult = await getListingsByCategory('00000000-0000-0000-0000-000000000002');
+  const closupListings = closeupListingsResult.success ? closeupListingsResult.data : [];
   return (
     <>
       {/* Hero Section */}
@@ -62,18 +65,38 @@ export default async function HomePage() {
         </div>
       </section>
       <CategoryNavMenu />
-      {/* Featured Products Section - Using our new component */}
-      <ListingList 
-        title="Featured Listings" 
-        initialListings={featuredListings} 
-        showViewAll={true}
-        viewAllLink="/marketplace"
-      />
+      {/* Featured Products Section */}
+      <Suspense>
+        <ListingList 
+          title="Featured Listings" 
+          initialListings={featuredListings} 
+          showViewAll={true}
+          viewAllLink="/marketplace"
+        />
+      </Suspense>
 
-      {/* Categories Section */}
+      <Suspense>
+      <ListingList 
+        title="Stage Magic" 
+        initialListings={stageListings} 
+        showViewAll={true}
+        viewAllLink="/marketplace/category/stage-magic"
+      />
+      </Suspense>
+
+      <Suspense>  
+      <ListingList 
+        title="Close-up Magic" 
+        initialListings={closupListings} 
+        showViewAll={true}
+        viewAllLink="/marketplace/category/close-up-magic"
+      />
+      </Suspense>
+
+      {/* Categories Section
       <Suspense fallback={<CategoryGridSkeleton />}>
         <CategoriesSection />
-      </Suspense>
+      </Suspense> */}
 
       {/* How It Works Section */}
       <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white">
