@@ -93,6 +93,8 @@ CREATE INDEX idx_recommendations_score ON public.product_recommendations(confide
 CREATE INDEX idx_recommendations_type ON public.product_recommendations(recommendation_type);
 CREATE INDEX idx_recommendations_source ON public.product_recommendations(source_listing_id);
 CREATE INDEX idx_recommendations_expiry ON public.product_recommendations(expires_at);
+CREATE INDEX idx_popular_terms_time_trend ON public.popular_search_terms(time_period, trending_score DESC);
+
 
 -- Indexes for popular_search_terms
 CREATE INDEX idx_popular_terms_count ON public.popular_search_terms(search_count DESC);

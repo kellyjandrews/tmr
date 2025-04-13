@@ -5,47 +5,53 @@
 CREATE OR REPLACE FUNCTION listings_search_vector(p_listing_id UUID)
 RETURNS tsvector AS $$
 DECLARE
-    v_listing record;
+    v_title text;
+    v_description text;
+    v_model text;
+    v_condition text;
     v_brand_name text;
     v_category_names text;
     v_tags text;
     v_search_vector tsvector;
 BEGIN
-    -- Get the listing details
+    -- Get the listing details more efficiently with one query
     SELECT 
-        l.title, 
-        l.description, 
-        l.model, 
+        l.title,
+        l.description,
+        l.model,
         l.condition,
         b.name as brand_name
-    INTO v_listing
+    INTO
+        v_title,
+        v_description,
+        v_model,
+        v_condition,
+        v_brand_name
     FROM public.listings l
     LEFT JOIN public.brands b ON l.brand_id = b.id
     WHERE l.id = p_listing_id;
     
-    -- Get category names for this listing
+    -- Get category names with one efficient query
     SELECT string_agg(c.name, ' ')
     INTO v_category_names
-    FROM public.listing_categories lc
-    JOIN public.categories c ON lc.category_id = c.id
-    WHERE lc.listing_id = p_listing_id;
+    FROM public.categories c
+    JOIN public.listing_categories lc ON c.id = lc.category_id AND lc.listing_id = p_listing_id;
     
-    -- Get tag names for this listing
+    -- Get tag names with one efficient query
     SELECT string_agg(t.name, ' ')
     INTO v_tags
-    FROM public.listing_tags lt
-    JOIN public.tags t ON lt.tag_id = t.id
-    WHERE lt.listing_id = p_listing_id;
+    FROM public.tags t
+    JOIN public.listing_tags lt ON t.id = lt.tag_id AND lt.listing_id = p_listing_id;
     
     -- Build the search vector with weights for different fields
     v_search_vector := 
-        setweight(to_tsvector('english', coalesce(v_listing.title, '')), 'A') ||
-        setweight(to_tsvector('english', coalesce(v_listing.brand_name, '')), 'B') ||
-        setweight(to_tsvector('english', coalesce(v_listing.model, '')), 'B') ||
+        setweight(to_tsvector('english', coalesce(v_title, '')), 'A') ||
+        setweight(to_tsvector('english', coalesce(v_brand_name, '')), 'B') ||
+        setweight(to_tsvector('english', coalesce(v_model, '')), 'B') ||
         setweight(to_tsvector('english', coalesce(v_category_names, '')), 'B') ||
         setweight(to_tsvector('english', coalesce(v_tags, '')), 'B') ||
-        setweight(to_tsvector('english', coalesce(v_listing.condition, '')), 'C') ||
-        setweight(to_tsvector('english', coalesce(v_listing.description, '')), 'D');
+        setweight(to_tsvector('english', coalesce(v_condition, '')), 'C') ||
+        setweight(to_tsvector('english', coalesce(v_description, '')), 'D');
     
     RETURN v_search_vector;
 END;

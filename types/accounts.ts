@@ -4,6 +4,7 @@
 
 import type { UUID } from 'node:crypto';
 import type { Address, BaseEntity, DeviceType, EmailAddress, PhoneNumber, URL } from '@/types/common';
+import type { NotificationType } from './notifications';
 
 /**
  * Account authentication types
@@ -369,18 +370,6 @@ export interface AccountSettings extends BaseEntity {
     content_filter_level: ContentFilterLevel;
 }
 
-/**
- * Notification types
- */
-export enum NotificationType {
-    ORDER_UPDATE = 'order_update',
-    PRICE_DROP = 'price_drop',
-    BACK_IN_STOCK = 'back_in_stock',
-    MESSAGE = 'message',
-    SYSTEM_ALERT = 'system_alert',
-    PROMOTION = 'promotion',
-    ACCOUNT = 'account',
-}
 
 /**
  * Notification importance

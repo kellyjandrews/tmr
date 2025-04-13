@@ -1,26 +1,27 @@
+
 export type Order = {
     id: string;
     account_id: string;
     store_id: string;
     cart_id: string;
-    order_number: string;
+    order_number: string; // Must match regex pattern: ^[A-Z]+-\d{8}-[A-Z0-9]+$
     status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'partially_refunded' | 'on_hold';
     payment_status: 'unpaid' | 'partially_paid' | 'paid' | 'refunded' | 'failed' | 'pending';
     fulfillment_status: 'unfulfilled' | 'partially_fulfilled' | 'fulfilled' | 'cancelled';
-    subtotal: number;
-    total_tax: number;
-    total_shipping: number;
-    total_discounts: number;
-    total_price: number;
-    currency: string;
+    subtotal: number; // Must be >= 0
+    total_tax: number; // Must be >= 0
+    total_shipping: number; // Must be >= 0
+    total_discounts: number; // Must be >= 0
+    total_price: number; // Must be >= 0
+    currency: string; // Must be exactly 3 characters
     shipping_address_id: string;
     billing_address_id: string;
     payment_method_id: string | null;
     shipping_method: 'standard' | 'expedited' | 'express' | 'overnight' | 'international' | 'pickup' | null;
-    tracking_number: string | null;
-    notes: string | null;
-    customer_email: string | null;
-    customer_phone: string | null;
+    tracking_number: string | null; // Max length 100 chars
+    notes: string | null; // Max length 1000 chars
+    customer_email: string | null; // Must match email pattern if not null
+    customer_phone: string | null; // Must match phone pattern if not null
     metadata: Record<string, unknown> | null;
     ip_address: string | null;
     user_agent: string | null;

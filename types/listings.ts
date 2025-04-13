@@ -2,13 +2,13 @@
 export type Listing = {
     id: string;
     store_id: string;
-    title: string;
-    slug: string;
-    description: string | null;
+    title: string; // Length must be between 5 and 200 characters
+    slug: string; // Must match regex pattern ^[a-z0-9]+(-[a-z0-9]+)*$
+    description: string | null; // Max length 5000 chars if not null
     brand_id: string | null;
-    year: number | null;
+    year: number | null; // Must be between 1900 and current year if not null
     condition: 'new' | 'like_new' | 'good' | 'fair' | 'poor' | null;
-    model: string | null;
+    model: string | null; // Max length 200 chars if not null
     as_is: boolean;
     is_digital: boolean;
     status: 'draft' | 'published' | 'sold' | 'archived';

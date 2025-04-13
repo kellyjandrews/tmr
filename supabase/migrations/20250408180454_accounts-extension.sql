@@ -84,7 +84,7 @@ CREATE TABLE public.account_audit_log (
     user_agent TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     
-    FOREIGN KEY (account_id) REFERENCES public.account_payment_info(id) ON DELETE CASCADE,
+    FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE,
     FOREIGN KEY (changed_by) REFERENCES public.accounts(id) ON DELETE SET NULL
 );
 

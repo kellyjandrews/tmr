@@ -13,8 +13,9 @@ CREATE TABLE public.reviews (
         CHECK (rating BETWEEN 1 AND 5),
     title TEXT 
         CHECK (length(title) BETWEEN 2 AND 200),
-    content TEXT 
-        CHECK (length(content) BETWEEN 10 AND 2000),
+   content TEXT 
+        CHECK (length(content) BETWEEN 10 AND 2000 AND
+               content !~ '(viagra|cialis|buy now|click here|free money)'),
     verified_purchase BOOLEAN DEFAULT false,
     status TEXT DEFAULT 'pending'
         CHECK (status IN ('pending','approved','rejected','flagged')),

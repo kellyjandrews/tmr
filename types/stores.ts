@@ -28,18 +28,18 @@ export enum StoreStatus {
  */
 export interface Store extends BaseEntity {
     owner_id: UUID;
-    name: string;
-    slug: string;
-    description?: string;
+    name: string; // Length must be between 2 and 200 characters
+    slug: string; // Must match regex pattern ^[a-z0-9]+(-[a-z0-9]+)*$
+    description?: string; // Length must be between 10 and 5000 characters if provided
     email: EmailAddress;
     phone?: PhoneNumber;
     website?: URL;
     logo_url?: URL;
     status: StoreStatus;
     verification_status: VerificationStatus;
-    total_listings: number;
-    total_sales: number;
-    rating?: number;
+    total_listings: number; // Must be >= 0
+    total_sales: number; // Must be >= 0
+    rating?: number; // Must be between 0 and 5 if provided
     metadata?: MetadataRecord;
     deleted_at?: Date;
 }

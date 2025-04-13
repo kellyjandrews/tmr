@@ -359,7 +359,6 @@ COMMENT ON TABLE public.listing_tags IS 'Junction table linking listings to tags
 
 -- Support functions
 
--- Function to automatically generate a unique slug from title
 CREATE OR REPLACE FUNCTION generate_listing_slug(title_input TEXT)
 RETURNS TEXT AS $$
 DECLARE
@@ -367,7 +366,7 @@ DECLARE
     unique_slug TEXT;
     counter INTEGER := 0;
 BEGIN
-    -- Use the common generate_slug function and check for uniqueness
+    -- Use the common generate_slug function
     base_slug := generate_slug(title_input);
     unique_slug := base_slug;
     
@@ -385,7 +384,6 @@ BEGIN
     RETURN unique_slug;
 END;
 $$ LANGUAGE plpgsql;
-
 -- Trigger to automatically generate a slug from title if not provided
 CREATE OR REPLACE FUNCTION set_listing_slug()
 RETURNS TRIGGER AS $$

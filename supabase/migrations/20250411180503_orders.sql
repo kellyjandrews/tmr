@@ -170,9 +170,9 @@ CREATE TABLE public.order_refunds (
     -- Foreign key constraints
     FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE CASCADE,
     FOREIGN KEY (order_item_id) REFERENCES public.order_items(id) ON DELETE SET NULL,
-    FOREIGN KEY (account_id) REFERENCES public.accounts(id),
-    FOREIGN KEY (processed_by) REFERENCES public.accounts(id),
-    FOREIGN KEY (original_payment_method_id) REFERENCES public.account_payment_info(id)
+    FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE,
+    FOREIGN KEY (processed_by) REFERENCES public.accounts(id) ON DELETE SET NULL,
+    FOREIGN KEY (original_payment_method_id) REFERENCES public.account_payment_info(id) ON DELETE SET NULL
 );
 
 -- Indexes for order_refunds

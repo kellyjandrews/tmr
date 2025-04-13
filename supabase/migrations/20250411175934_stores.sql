@@ -416,9 +416,23 @@ CREATE TRIGGER update_store_shipping_policy_modtime
 
 -- public.stores RLS
 ALTER TABLE public.stores ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Store owners can view and edit their own stores" 
-    ON public.stores FOR ALL 
+CREATE POLICY "Store owners can view their own stores" 
+    ON public.stores FOR SELECT 
     USING (auth.uid() = owner_id);
+    
+CREATE POLICY "Store owners can update their own stores" 
+    ON public.stores FOR UPDATE 
+    USING (auth.uid() = owner_id)
+    WITH CHECK (auth.uid() = owner_id AND status != 'suspended');
+    
+CREATE POLICY "Store owners can insert their own stores" 
+    ON public.stores FOR INSERT 
+    WITH CHECK (auth.uid() = owner_id);
+    
+CREATE POLICY "Store owners can delete their own stores" 
+    ON public.stores FOR DELETE 
+    USING (auth.uid() = owner_id AND status != 'suspended');
+    
 CREATE POLICY "Users can view published stores"
     ON public.stores FOR SELECT
     USING (status = 'active');
