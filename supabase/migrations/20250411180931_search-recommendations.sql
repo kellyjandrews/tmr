@@ -119,7 +119,7 @@ CREATE TRIGGER update_search_suggestions_modtime
 
 -- Function to cleanup expired recommendations
 CREATE OR REPLACE FUNCTION cleanup_expired_recommendations()
-RETURNS INTEGER AS $
+RETURNS INTEGER AS $$
 DECLARE
     deleted_count INTEGER;
 BEGIN
@@ -129,4 +129,4 @@ BEGIN
     GET DIAGNOSTICS deleted_count = ROW_COUNT;
     RETURN deleted_count;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;

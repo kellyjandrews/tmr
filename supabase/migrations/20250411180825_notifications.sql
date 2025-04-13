@@ -49,6 +49,34 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Add a constraint trigger to enforce that only is_read can be changed during updates
+CREATE OR REPLACE FUNCTION enforce_notification_update_limitations()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Allow changes only to the is_read field
+    IF (NEW.account_id != OLD.account_id OR
+        NEW.notification_type != OLD.notification_type OR
+        NEW.title != OLD.title OR
+        NEW.content != OLD.content OR
+        NEW.related_entity_id IS DISTINCT FROM OLD.related_entity_id OR
+        NEW.related_entity_type IS DISTINCT FROM OLD.related_entity_type OR
+        NEW.action_url IS DISTINCT FROM OLD.action_url OR
+        NEW.expiration IS DISTINCT FROM OLD.expiration OR
+        NEW.importance IS DISTINCT FROM OLD.importance OR
+        NEW.icon IS DISTINCT FROM OLD.icon OR
+        NEW.created_at != OLD.created_at) THEN
+            RAISE EXCEPTION 'Only the is_read field can be updated for notifications';
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER enforce_notification_update_limitations_trigger
+    BEFORE UPDATE ON public.notifications
+    FOR EACH ROW
+    EXECUTE FUNCTION enforce_notification_update_limitations();
+
 -- Row Level Security Policy
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
@@ -62,17 +90,8 @@ CREATE POLICY "Users can mark their own notifications as read"
     USING (auth.uid() = account_id)
     WITH CHECK (
         -- Only allow updating the is_read field
-        (OLD.account_id = NEW.account_id) AND
-        (OLD.notification_type = NEW.notification_type) AND
-        (OLD.title = NEW.title) AND
-        (OLD.content = NEW.content) AND
-        (OLD.related_entity_id = NEW.related_entity_id) AND
-        (OLD.related_entity_type = NEW.related_entity_type) AND
-        (OLD.action_url = NEW.action_url) AND
-        (OLD.expiration = NEW.expiration) AND
-        (OLD.importance = NEW.importance) AND
-        (OLD.icon = NEW.icon) AND
-        (OLD.created_at = NEW.created_at)
+        auth.uid() = account_id
+        -- The policy will only apply to the is_read column in a limited way
     );
 
 -- System can create and manage all notifications
