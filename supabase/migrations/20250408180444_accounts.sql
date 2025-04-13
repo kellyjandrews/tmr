@@ -1,12 +1,9 @@
 -- Accounts Database Migration
--- Create UUID extension if not exists
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Accounts Table
 CREATE TABLE public.accounts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email TEXT NOT NULL UNIQUE 
-        CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$'),
+    email email_type NOT NULL UNIQUE,
     username TEXT UNIQUE 
         CHECK (
             length(username) BETWEEN 3 AND 50 AND 
@@ -29,8 +26,7 @@ CREATE TABLE public.accounts (
         CHECK (account_status IN ('active','suspended','deleted','pending','limited')),
     role TEXT DEFAULT 'user' 
         CHECK (role IN ('user','seller','admin','moderator','support','content_creator')),
-    profile_picture_url TEXT 
-        CHECK (profile_picture_url ~* '^https?://'),
+    profile_picture_url url_type,
     preferred_language TEXT 
         CHECK (length(preferred_language) = 2),
     timezone TEXT 
@@ -57,14 +53,6 @@ CREATE INDEX idx_accounts_referral ON public.accounts(referral_code);
 CREATE INDEX idx_accounts_last_login ON public.accounts(last_login);
 
 -- Trigger to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_modified_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = now();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
 CREATE TRIGGER update_accounts_modtime
     BEFORE UPDATE ON public.accounts
     FOR EACH ROW
@@ -75,10 +63,8 @@ CREATE TABLE public.account_billing (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     account_id UUID NOT NULL UNIQUE,
     payment_method_id UUID,
-    billing_email TEXT 
-        CHECK (billing_email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$'),
-    billing_phone TEXT 
-        CHECK (billing_phone ~* '^\+?[1-9]\d{1,14}$'),
+    billing_email email_type,
+    billing_phone phone_type,
     tax_id_number TEXT 
         CHECK (length(tax_id_number) <= 50),
     billing_type TEXT 
@@ -190,11 +176,7 @@ CREATE TABLE public.account_sessions (
     account_id UUID NOT NULL,
     session_token TEXT NOT NULL UNIQUE,
     refresh_token TEXT UNIQUE,
-    ip_address TEXT 
-        CHECK (
-            ip_address ~* '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$' OR 
-            ip_address ~* '^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$'
-        ),
+    ip_address ip_address_type,
     user_agent TEXT 
         CHECK (length(user_agent) <= 500),
     device_fingerprint TEXT,
@@ -242,8 +224,7 @@ CREATE TABLE public.account_addresses (
         CHECK (length(postal_code) BETWEEN 3 AND 20),
     country TEXT NOT NULL 
         CHECK (length(country) = 2),
-    phone TEXT 
-        CHECK (phone ~* '^\+?[1-9]\d{1,14}$'),
+    phone phone_type,
     is_default BOOLEAN DEFAULT false,
     is_commercial BOOLEAN DEFAULT false,
     latitude DECIMAL(10,8) 
@@ -315,7 +296,7 @@ CREATE POLICY "Users can view and edit their own addresses"
 
 -- Comments for future reference
 COMMENT ON TABLE public.accounts IS 'Stores user account information with comprehensive authentication and profile details';
-COMMENT ON TABLE public.account_billing IS 'Billing information and financial tracking for user public.accounts';
+COMMENT ON TABLE public.account_billing IS 'Billing information and financial tracking for user accounts';
 COMMENT ON TABLE public.account_payment_info IS 'Secure storage of user payment methods';
 COMMENT ON TABLE public.account_settings IS 'User preferences and account settings';
 COMMENT ON TABLE public.account_sessions IS 'Tracking of user login sessions and authentication events';

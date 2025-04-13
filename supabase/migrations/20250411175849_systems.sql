@@ -1,6 +1,4 @@
 -- System Database Migration
--- Create UUID extension if not exists
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Tags Table
 CREATE TABLE public.tags (
@@ -98,8 +96,7 @@ CREATE TABLE public.global_events (
     entity_id UUID NOT NULL,
     related_entity_id UUID,
     account_id UUID,
-    ip_address TEXT 
-        CHECK (ip_address ~* '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'),
+    ip_address ip_address_type,
     user_agent TEXT 
         CHECK (length(user_agent) <= 500),
     severity TEXT 
@@ -205,8 +202,6 @@ CREATE POLICY "Anyone can view brand categories"
 CREATE POLICY "Only admins can modify brand categories" 
     ON public.brand_categories FOR ALL 
     USING (auth.uid() IN (SELECT id FROM public.accounts WHERE role IN ('admin', 'moderator')));
-
-
 
 -- Comments for future reference
 COMMENT ON TABLE public.tags IS 'Flexible tagging system for products, stores, content, and system features';

@@ -52,8 +52,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Add search_vector column to listings table
-ALTER TABLE public.listings ADD COLUMN search_vector tsvector;
-CREATE INDEX idx_listings_search_vector ON public.listings USING GIN (search_vector);
+ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS search_vector tsvector;
+CREATE INDEX IF NOT EXISTS idx_listings_search_vector ON public.listings USING GIN (search_vector);
 
 -- Function to update search vector when a listing is modified
 CREATE OR REPLACE FUNCTION update_listing_search_vector()
@@ -350,11 +350,6 @@ BEGIN
     )
     RETURNING id INTO v_new_price_id;
     
-    -- Update the listing with the new price ID
-    UPDATE public.listings
-    SET price_id = v_new_price_id
-    WHERE id = v_new_listing_id;
-    
     -- Copy images if requested
     IF p_include_images THEN
         FOR v_image IN
@@ -450,37 +445,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- View for listing analytics (views, favorites, offers)
-CREATE OR REPLACE VIEW listing_analytics AS
-SELECT 
-    l.id as listing_id,
-    l.title,
-    l.store_id,
-    s.name as store_name,
-    l.status,
-    lp.price,
-    COUNT(DISTINCT CASE WHEN le.event_type = 'view' THEN le.id END) as view_count,
-    COUNT(DISTINCT CASE WHEN le.event_type = 'favorite' THEN le.id END) as favorite_count,
-    COUNT(DISTINCT CASE WHEN le.event_type = 'share' THEN le.id END) as share_count,
-    COUNT(DISTINCT lo.id) as offer_count,
-    COALESCE(MAX(CASE WHEN lo.status = 'active' THEN lo.offer_amount END), 0) as highest_active_offer,
-    l.created_at,
-    EXTRACT(EPOCH FROM (now() - l.created_at))/86400 as days_listed
-FROM 
-    public.listings l
-JOIN 
-    public.stores s ON l.store_id = s.id
-LEFT JOIN 
-    public.listing_prices lp ON l.price_id = lp.id
-LEFT JOIN 
-    public.listing_events le ON l.id = le.listing_id
-LEFT JOIN 
-    public.listing_offers lo ON l.id = lo.listing_id
-WHERE 
-    l.deleted_at IS NULL
-GROUP BY 
-    l.id, l.title, l.store_id, s.name, l.status, lp.price, l.created_at;
-
 -- Function to get listings with similar attributes (for "you may also like" feature)
 CREATE OR REPLACE FUNCTION get_similar_listings(
     p_listing_id UUID,
@@ -501,12 +465,15 @@ BEGIN
     -- Get the original listing details
     SELECT 
         l.*, 
-        b.id as brand_id
+        b.id as brand_id,
+        lp.price
     INTO v_listing
     FROM 
         public.listings l
     LEFT JOIN 
         public.brands b ON l.brand_id = b.id
+    LEFT JOIN
+        public.listing_prices lp ON l.id = lp.listing_id AND lp.is_current = true
     WHERE 
         l.id = p_listing_id;
     
@@ -568,7 +535,7 @@ BEGIN
     FROM 
         public.listings l
     JOIN 
-        public.listing_prices lp ON l.price_id = lp.id
+        public.listing_prices lp ON l.id = lp.listing_id AND lp.is_current = true
     WHERE 
         l.id != p_listing_id
         AND l.status = 'published'
@@ -580,6 +547,146 @@ BEGIN
     LIMIT p_limit;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to get related tags for a given tag
+CREATE OR REPLACE FUNCTION get_related_tags(tag_id UUID, limit_count INTEGER DEFAULT 10)
+RETURNS TABLE (
+    id UUID,
+    name TEXT,
+    slug TEXT,
+    relevance_score FLOAT
+) AS $$
+BEGIN
+    RETURN QUERY
+    WITH tag_listings AS (
+        -- Get all listings with the given tag
+        SELECT listing_id
+        FROM public.listing_tags
+        WHERE tag_id = $1
+    ),
+    co_occurring_tags AS (
+        -- Find tags that appear on the same listings
+        SELECT 
+            t.id,
+            t.name,
+            t.slug,
+            COUNT(lt.listing_id) AS occurrence_count
+        FROM tag_listings tl
+        JOIN public.listing_tags lt ON tl.listing_id = lt.listing_id
+        JOIN public.tags t ON lt.tag_id = t.id
+        WHERE lt.tag_id != $1  -- Exclude the original tag
+        GROUP BY t.id, t.name, t.slug
+    )
+    SELECT 
+        id,
+        name,
+        slug,
+        (occurrence_count::FLOAT / (
+            SELECT COUNT(*) FROM tag_listings
+        )) AS relevance_score  -- Calculate relevance as percentage of co-occurrence
+    FROM co_occurring_tags
+    ORDER BY relevance_score DESC, name
+    LIMIT limit_count;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to get related listings based on category, tags and brand
+CREATE OR REPLACE FUNCTION get_related_listings(
+    p_listing_id UUID,
+    p_limit INTEGER DEFAULT 6
+)
+RETURNS TABLE (
+    id UUID,
+    title TEXT,
+    price DECIMAL(10,2),
+    relevance_score INTEGER
+) AS $$
+BEGIN
+    RETURN QUERY
+    WITH listing_categories AS (
+        -- Get categories of the source listing
+        SELECT category_id
+        FROM public.listing_categories
+        WHERE listing_id = p_listing_id
+    ),
+    listing_tags AS (
+        -- Get tags of the source listing
+        SELECT tag_id
+        FROM public.listing_tags
+        WHERE listing_id = p_listing_id
+    ),
+    listing_brand AS (
+        -- Get brand of the source listing
+        SELECT brand_id
+        FROM public.listings
+        WHERE id = p_listing_id
+    ),
+    candidate_listings AS (
+        -- Get listings with matching categories
+        SELECT 
+            l.id,
+            l.title,
+            lp.price,
+            2 AS category_score  -- Base score for category match
+        FROM public.listings l
+        JOIN public.listing_categories lc ON l.id = lc.listing_id
+        JOIN public.listing_prices lp ON l.id = lp.listing_id AND lp.is_current = true
+        WHERE 
+            lc.category_id IN (SELECT category_id FROM listing_categories)
+            AND l.id != p_listing_id  -- Exclude the source listing
+            AND l.status = 'published'  -- Only include active listings
+        
+        UNION ALL
+        
+        -- Get listings with matching tags
+        SELECT 
+            l.id,
+            l.title,
+            lp.price,
+            1 AS category_score  -- Base score for tag match
+        FROM public.listings l
+        JOIN public.listing_tags lt ON l.id = lt.listing_id
+        JOIN public.listing_prices lp ON l.id = lp.listing_id AND lp.is_current = true
+        WHERE 
+            lt.tag_id IN (SELECT tag_id FROM listing_tags)
+            AND l.id != p_listing_id
+            AND l.status = 'published'
+        
+        UNION ALL
+        
+        -- Get listings with matching brand
+        SELECT 
+            l.id,
+            l.title,
+            lp.price,
+            3 AS category_score  -- Base score for brand match
+        FROM public.listings l
+        JOIN public.listing_prices lp ON l.id = lp.listing_id AND lp.is_current = true
+        WHERE 
+            l.brand_id IN (SELECT brand_id FROM listing_brand)
+            AND l.id != p_listing_id
+            AND l.status = 'published'
+    ),
+    scored_listings AS (
+        -- Combine and score all candidates
+        SELECT 
+            id,
+            title,
+            price,
+            SUM(category_score) AS relevance_score
+        FROM candidate_listings
+        GROUP BY id, title, price
+    )
+    SELECT 
+        id,
+        title,
+        price,
+        relevance_score
+    FROM scored_listings
+    ORDER BY relevance_score DESC, id
+    LIMIT p_limit;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Automatic notification system for offers and messages
 CREATE OR REPLACE FUNCTION notify_listing_activity()
@@ -626,16 +733,27 @@ BEGIN
         );
     END IF;
     
-    -- Insert notification (assuming a notifications table exists)
-    -- This would typically trigger real-time notifications via WebSockets
+    -- Insert notification
     INSERT INTO notifications(
         recipient_id,
         notification_type,
+        title,
+        content,
         data,
-        read
+        is_read
     ) VALUES (
         v_store_owner_id,
         v_notification_type || '_received',
+        CASE 
+            WHEN v_notification_type = 'offer' THEN 'New offer received'
+            WHEN v_notification_type = 'message' THEN 'New message received'
+            ELSE 'New activity on your listing'
+        END,
+        CASE 
+            WHEN v_notification_type = 'offer' THEN 'You received a new offer on ' || v_listing_title
+            WHEN v_notification_type = 'message' THEN 'You received a new message about ' || v_listing_title
+            ELSE 'There is new activity on your listing: ' || v_listing_title
+        END,
         v_notification_data,
         false
     );
@@ -644,55 +762,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
--- Function to get related tags for a given tag
-CREATE OR REPLACE FUNCTION get_related_tags(tag_id UUID, limit_count INTEGER DEFAULT 10)
-RETURNS TABLE (
-    id UUID,
-    name TEXT,
-    slug TEXT,
-    relevance_score FLOAT
-) AS $$
-BEGIN
-    RETURN QUERY
-    WITH tag_listings AS (
-        -- Get all listings with the given tag
-        SELECT listing_id
-        FROM public.listing_tags
-        WHERE tag_id = $1
-    ),
-    co_occurring_tags AS (
-        -- Find tags that appear on the same listings
-        SELECT 
-            t.id,
-            t.name,
-            t.slug,
-            COUNT(lt.listing_id) AS occurrence_count
-        FROM tag_listings tl
-        JOIN public.listing_tags lt ON tl.listing_id = lt.listing_id
-        JOIN public.tags t ON lt.tag_id = t.id
-        WHERE lt.tag_id != $1  -- Exclude the original tag
-        GROUP BY t.id, t.name, t.slug
-    )
-    SELECT 
-        id,
-        name,
-        slug,
-        (occurrence_count::FLOAT / (
-            SELECT COUNT(*) FROM tag_listings
-        )) AS relevance_score  -- Calculate relevance as percentage of co-occurrence
-    FROM co_occurring_tags
-    ORDER BY relevance_score DESC, name
-    LIMIT limit_count;
-END;
-$$ LANGUAGE plpgsql;
-
--- Function to tag a listing automatically based on its description and title
+-- Function to auto-tag a listing based on its description and title
 CREATE OR REPLACE FUNCTION auto_tag_listing(
     p_listing_id UUID,
     p_max_tags INTEGER DEFAULT 5
 )
-RETURNS INTEGER AS $
+RETURNS INTEGER AS $$
 DECLARE
     listing_text TEXT;
     tag_count INTEGER := 0;
@@ -735,114 +810,13 @@ BEGIN
     )
     LOOP
         -- Apply the tag to the listing
-        INSERT INTO public.listing_tags (id, listing_id, tag_id)
-        VALUES (uuid_generate_v4(), p_listing_id, tag_record.id);
+        INSERT INTO public.listing_tags (listing_id, tag_id)
+        VALUES (p_listing_id, tag_record.id);
         
         tag_count := tag_count + 1;
     END LOOP;
     
     RETURN tag_count;
-END;
-$$ LANGUAGE plpgsql;
-
--- Function to generate related listings based on category, tags and brand
-CREATE OR REPLACE FUNCTION get_related_listings(
-    p_listing_id UUID,
-    p_limit INTEGER DEFAULT 6
-)
-RETURNS TABLE (
-    id UUID,
-    title TEXT,
-    price DECIMAL(10,2),
-    relevance_score INTEGER
-) AS $
-BEGIN
-    RETURN QUERY
-    WITH listing_categories AS (
-        -- Get categories of the source listing
-        SELECT category_id
-        FROM public.listing_categories
-        WHERE listing_id = p_listing_id
-    ),
-    listing_tags AS (
-        -- Get tags of the source listing
-        SELECT tag_id
-        FROM public.listing_tags
-        WHERE listing_id = p_listing_id
-    ),
-    listing_brand AS (
-        -- Get brand of the source listing
-        SELECT brand_id
-        FROM public.listings
-        WHERE id = p_listing_id
-    ),
-    candidate_listings AS (
-        -- Get listings with matching categories
-        SELECT 
-            l.id,
-            l.title,
-            lp.price,
-            2 AS category_score  -- Base score for category match
-        FROM public.listings l
-        JOIN public.listing_categories lc ON l.id = lc.listing_id
-        JOIN public.listing_prices lp ON l.id = lp.listing_id
-        WHERE 
-            lc.category_id IN (SELECT category_id FROM listing_categories)
-            AND l.id != p_listing_id  -- Exclude the source listing
-            AND l.status = 'published'  -- Only include active listings
-            AND lp.is_current = true  -- Get current price
-        
-        UNION ALL
-        
-        -- Get listings with matching tags
-        SELECT 
-            l.id,
-            l.title,
-            lp.price,
-            1 AS category_score  -- Base score for tag match
-        FROM public.listings l
-        JOIN public.listing_tags lt ON l.id = lt.listing_id
-        JOIN public.listing_prices lp ON l.id = lp.listing_id
-        WHERE 
-            lt.tag_id IN (SELECT tag_id FROM listing_tags)
-            AND l.id != p_listing_id
-            AND l.status = 'published'
-            AND lp.is_current = true
-        
-        UNION ALL
-        
-        -- Get listings with matching brand
-        SELECT 
-            l.id,
-            l.title,
-            lp.price,
-            3 AS category_score  -- Base score for brand match
-        FROM public.listings l
-        JOIN public.listing_prices lp ON l.id = lp.listing_id
-        WHERE 
-            l.brand_id IN (SELECT brand_id FROM listing_brand)
-            AND l.id != p_listing_id
-            AND l.status = 'published'
-            AND lp.is_current = true
-    ),
-    scored_listings AS (
-        -- Combine and score all candidates
-        SELECT 
-            id,
-            title,
-            price,
-            SUM(category_score) AS relevance_score
-        FROM candidate_listings
-        GROUP BY id, title, price
-    )
-    SELECT 
-        id,
-        title,
-        price,
-        relevance_score
-    FROM scored_listings
-    ORDER BY relevance_score DESC, id
-    LIMIT p_limit;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -858,6 +832,37 @@ CREATE TRIGGER notify_new_message
     FOR EACH ROW
     WHEN (NEW.parent_message_id IS NULL)
     EXECUTE FUNCTION notify_listing_activity();
+
+-- Create a view for listing analytics
+CREATE OR REPLACE VIEW listing_analytics AS
+SELECT 
+    l.id as listing_id,
+    l.title,
+    l.store_id,
+    s.name as store_name,
+    l.status,
+    lp.price,
+    COUNT(DISTINCT CASE WHEN le.event_type = 'view' THEN le.id END) as view_count,
+    COUNT(DISTINCT CASE WHEN le.event_type = 'favorite' THEN le.id END) as favorite_count,
+    COUNT(DISTINCT CASE WHEN le.event_type = 'share' THEN le.id END) as share_count,
+    COUNT(DISTINCT lo.id) as offer_count,
+    COALESCE(MAX(CASE WHEN lo.status = 'active' THEN lo.offer_amount END), 0) as highest_active_offer,
+    l.created_at,
+    EXTRACT(EPOCH FROM (now() - l.created_at))/86400 as days_listed
+FROM 
+    public.listings l
+JOIN 
+    public.stores s ON l.store_id = s.id
+LEFT JOIN 
+    public.listing_prices lp ON l.id = lp.listing_id AND lp.is_current = true
+LEFT JOIN 
+    public.listing_events le ON l.id = le.listing_id
+LEFT JOIN 
+    public.listing_offers lo ON l.id = lo.listing_id
+WHERE 
+    l.deleted_at IS NULL
+GROUP BY 
+    l.id, l.title, l.store_id, s.name, l.status, lp.price, l.created_at;
 
 -- Comments and documentation
 COMMENT ON FUNCTION listings_search_vector IS 'Creates a weighted search vector for comprehensive listing search';

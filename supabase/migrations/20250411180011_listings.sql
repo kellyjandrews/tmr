@@ -1,6 +1,4 @@
 -- Listings Database Migration
--- Create UUID extension if not exists
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Listings Table
 CREATE TABLE public.listings (
@@ -43,14 +41,6 @@ CREATE INDEX idx_listings_updated_at ON public.listings(updated_at);
 CREATE INDEX idx_listings_title_search ON public.listings USING GIN (to_tsvector('english', title));
 
 -- Trigger to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_modified_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = now();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
 CREATE TRIGGER update_listings_modtime
     BEFORE UPDATE ON public.listings
     FOR EACH ROW
@@ -60,8 +50,7 @@ CREATE TRIGGER update_listings_modtime
 CREATE TABLE public.listing_images (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     listing_id UUID NOT NULL,
-    image_url TEXT NOT NULL 
-        CHECK (image_url ~* '^https?://'),
+    image_url url_type NOT NULL,
     display_order INTEGER NOT NULL DEFAULT 0,
     alt_text TEXT 
         CHECK (length(alt_text) <= 300),
@@ -251,7 +240,6 @@ CREATE TABLE public.listing_status_history (
 CREATE INDEX idx_listing_status_history_listing ON public.listing_status_history(listing_id);
 CREATE INDEX idx_listing_status_history_created ON public.listing_status_history(created_at);
 
-
 -- Listing Categories (Junction table)
 CREATE TABLE public.listing_categories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -288,9 +276,8 @@ CREATE TABLE public.listing_tags (
 -- Indexes for listing_tags
 CREATE INDEX idx_listing_tags_listing ON public.listing_tags(listing_id);
 CREATE INDEX idx_listing_tags_tag ON public.listing_tags(tag_id);
--- Row Level Security Policies
--- Note: These are basic examples and should be customized based on specific requirements
 
+-- Row Level Security Policies
 -- Listings RLS
 ALTER TABLE public.listings ENABLE ROW LEVEL SECURITY;
 
@@ -325,7 +312,7 @@ CREATE POLICY "Store owners can manage images of their listings"
         )
     ));
 
-
+-- Listing Categories RLS
 ALTER TABLE public.listing_categories ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can view listing categories" 
     ON public.listing_categories FOR SELECT 
@@ -341,6 +328,7 @@ CREATE POLICY "Admins can modify any listing categories"
     ON public.listing_categories FOR ALL 
     USING (auth.uid() IN (SELECT id FROM public.accounts WHERE role IN ('admin', 'moderator')));
 
+-- Listing Tags RLS
 ALTER TABLE public.listing_tags ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can view listing tags" 
     ON public.listing_tags FOR SELECT 
@@ -355,10 +343,6 @@ CREATE POLICY "Sellers can modify their listing tags"
 CREATE POLICY "Admins can modify any listing tags" 
     ON public.listing_tags FOR ALL 
     USING (auth.uid() IN (SELECT id FROM public.accounts WHERE role IN ('admin', 'moderator')));
-
-
--- Additional RLS policies for other listing tables follow the same pattern
--- This ensures store owners can manage their listings while others can only view published content
 
 -- Comments for future reference
 COMMENT ON TABLE public.listings IS 'Main listing information including product details and status';
@@ -383,12 +367,8 @@ DECLARE
     unique_slug TEXT;
     counter INTEGER := 0;
 BEGIN
-    -- Convert title to URL-friendly format
-    base_slug := lower(trim(title_input));
-    base_slug := regexp_replace(base_slug, '[^a-z0-9\s-]', '', 'g');
-    base_slug := regexp_replace(base_slug, '\s+', '-', 'g');
-    base_slug := substring(base_slug from 1 for 47);
-    
+    -- Use the common generate_slug function and check for uniqueness
+    base_slug := generate_slug(title_input);
     unique_slug := base_slug;
     
     -- Check if slug exists and generate a unique one
@@ -404,7 +384,7 @@ BEGIN
     
     RETURN unique_slug;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 -- Trigger to automatically generate a slug from title if not provided
 CREATE OR REPLACE FUNCTION set_listing_slug()

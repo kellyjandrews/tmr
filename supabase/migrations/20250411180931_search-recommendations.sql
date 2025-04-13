@@ -1,6 +1,4 @@
 -- Search History and Recommendations System
--- Create extension if not exists
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Search History Table
 CREATE TABLE public.search_history (
@@ -98,7 +96,7 @@ CREATE INDEX idx_recommendations_expiry ON public.product_recommendations(expire
 
 -- Indexes for popular_search_terms
 CREATE INDEX idx_popular_terms_count ON public.popular_search_terms(search_count DESC);
-CREATE INDEX idx_popular_terms_period ON public.popular_terms_term, time_period);
+CREATE INDEX idx_popular_terms_period ON public.popular_search_terms(term, time_period);
 CREATE INDEX idx_popular_terms_trending ON public.popular_search_terms(trending_score DESC);
 CREATE INDEX idx_popular_terms_conversion ON public.popular_search_terms(conversion_rate DESC);
 
@@ -121,7 +119,7 @@ CREATE TRIGGER update_search_suggestions_modtime
 
 -- Function to cleanup expired recommendations
 CREATE OR REPLACE FUNCTION cleanup_expired_recommendations()
-RETURNS INTEGER AS $$
+RETURNS INTEGER AS $
 DECLARE
     deleted_count INTEGER;
 BEGIN
@@ -131,65 +129,4 @@ BEGIN
     GET DIAGNOSTICS deleted_count = ROW_COUNT;
     RETURN deleted_count;
 END;
-$$ LANGUAGE plpgsql;
-
--- Function to increment search suggestion usage count
-CREATE OR REPLACE FUNCTION increment_suggestion_usage()
-RETURNS TRIGGER AS $$
-BEGIN
-    UPDATE public.search_suggestions
-    SET usage_count = usage_count + 1
-    WHERE prefix = NEW.prefix AND suggestion = NEW.suggestion;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Row Level Security Policies
-ALTER TABLE public.search_history ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.product_recommendations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.popular_search_terms ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.search_suggestions ENABLE ROW LEVEL SECURITY;
-
--- Search history visible only to the user who made the search
-CREATE POLICY "Users can view their own search history" 
-    ON public.search_history FOR SELECT 
-    USING (auth.uid() = account_id);
-
--- Product recommendations visible only to the intended user
-CREATE POLICY "Users can view their own recommendations" 
-    ON public.product_recommendations FOR SELECT 
-    USING (auth.uid() = account_id);
-
--- Popular search terms and suggestions visible to all
-CREATE POLICY "Anyone can view popular search terms" 
-    ON public.popular_search_terms FOR SELECT 
-    USING (true);
-
-CREATE POLICY "Anyone can view search suggestions" 
-    ON public.search_suggestions FOR SELECT 
-    USING (true);
-
--- System can create and manage all search-related data
-CREATE POLICY "System can manage search history" 
-    ON public.search_history FOR ALL 
-    USING (auth.uid() IS NULL);
-
-CREATE POLICY "System can manage recommendations" 
-    ON public.product_recommendations FOR ALL 
-    USING (auth.uid() IS NULL);
-
-CREATE POLICY "System can manage popular terms" 
-    ON public.popular_search_terms FOR ALL 
-    USING (auth.uid() IS NULL);
-
-CREATE POLICY "System can manage search suggestions" 
-    ON public.search_suggestions FOR ALL 
-    USING (auth.uid() IS NULL);
-
--- Comments for documentation
-COMMENT ON TABLE public.search_history IS 'User search history for personalization and analytics';
-COMMENT ON TABLE public.product_recommendations IS 'Personalized product recommendations for users';
-COMMENT ON TABLE public.popular_search_terms IS 'Aggregated popular search terms for trend analysis';
-COMMENT ON TABLE public.search_suggestions IS 'Autocomplete suggestions for the search bar';
-COMMENT ON FUNCTION cleanup_expired_recommendations() IS 'Automatically removes expired product recommendations';
+$ LANGUAGE plpgsql;
