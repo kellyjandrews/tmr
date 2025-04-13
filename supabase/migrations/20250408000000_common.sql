@@ -108,8 +108,37 @@ BEGIN
             client_user_agent := NULL;
     END;
 
-    -- Return a placeholder UUID for now - actual table will be created later
-    RETURN uuid_generate_v4();
+    -- Insert the event into global_events table
+    INSERT INTO public.global_events (
+        id,
+        event_namespace,
+        event_type,
+        entity_id,
+        related_entity_id,
+        account_id,
+        ip_address,
+        user_agent,
+        severity,
+        data,
+        source,
+        created_at
+    ) VALUES (
+        uuid_generate_v4(),
+        p_event_namespace,
+        p_event_type,
+        p_entity_id,
+        p_related_entity_id,
+        p_account_id,
+        client_ip,
+        client_user_agent,
+        p_severity,
+        p_data,
+        p_source,
+        now()
+    )
+    RETURNING id INTO event_id;
+    
+    RETURN event_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

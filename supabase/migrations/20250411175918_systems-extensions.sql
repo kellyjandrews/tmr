@@ -1,27 +1,5 @@
 -- System Database Functions and Procedures
 
--- Function to generate URL-friendly slugs
-CREATE OR REPLACE FUNCTION generate_slug(input_text TEXT)
-RETURNS TEXT AS $$
-DECLARE
-    slug TEXT;
-BEGIN
-    -- Convert to lowercase
-    slug := lower(input_text);
-    
-    -- Replace non-alphanumeric characters with hyphens
-    slug := regexp_replace(slug, '[^a-z0-9]+', '-', 'g');
-    
-    -- Remove leading and trailing hyphens
-    slug := trim(both '-' from slug);
-    
-    -- Ensure unique slug by appending random string if needed
-    -- This is a simplified approach - in production you might want to check for duplicates
-    -- and append a counter or timestamp instead
-    RETURN slug;
-END;
-$$ LANGUAGE plpgsql;
-
 -- Function to build category path (for breadcrumbs)
 CREATE OR REPLACE FUNCTION get_category_path(category_id UUID)
 RETURNS TABLE (
@@ -236,67 +214,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to log a global event
-CREATE OR REPLACE FUNCTION log_global_event(
-    p_event_namespace TEXT,
-    p_event_type TEXT,
-    p_entity_id UUID,
-    p_related_entity_id UUID DEFAULT NULL,
-    p_account_id UUID DEFAULT NULL,
-    p_data JSONB DEFAULT '{}'::JSONB,
-    p_severity TEXT DEFAULT 'info',
-    p_source TEXT DEFAULT 'system'
-)
-RETURNS UUID AS $$
-DECLARE
-    event_id UUID;
-    client_ip TEXT;
-    client_user_agent TEXT;
-BEGIN
-    -- Attempt to get client IP and user agent from request headers
-    BEGIN
-        client_ip := nullif(current_setting('request.headers', true)::json->>'x-forwarded-for', '')::TEXT;
-        client_user_agent := nullif(current_setting('request.headers', true)::json->>'user-agent', '')::TEXT;
-    EXCEPTION
-        WHEN OTHERS THEN
-            client_ip := NULL;
-            client_user_agent := NULL;
-    END;
-
-    -- Insert the event
-    INSERT INTO public.global_events (
-        id,
-        event_namespace,
-        event_type,
-        entity_id,
-        related_entity_id,
-        account_id,
-        ip_address,
-        user_agent,
-        severity,
-        data,
-        source,
-        created_at
-    ) VALUES (
-        uuid_generate_v4(),
-        p_event_namespace,
-        p_event_type,
-        p_entity_id,
-        p_related_entity_id,
-        p_account_id,
-        client_ip,
-        client_user_agent,
-        p_severity,
-        p_data,
-        p_source,
-        now()
-    )
-    RETURNING id INTO event_id;
-    
-    RETURN event_id;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Function to get nested hierarchical categories
 CREATE OR REPLACE FUNCTION get_hierarchical_categories(taxonomy_type_filter TEXT DEFAULT NULL)
 RETURNS TABLE (
@@ -381,10 +298,8 @@ $$ LANGUAGE SQL;
 
 
 -- Comments for future reference
-COMMENT ON FUNCTION generate_slug IS 'Generates a URL-friendly slug from any text input';
 COMMENT ON FUNCTION get_category_path IS 'Returns the full path from root to specified category for breadcrumb navigation';
 COMMENT ON FUNCTION get_child_categories IS 'Returns all child categories at any level below a specified parent';
 COMMENT ON FUNCTION get_related_tags IS 'Finds tags that frequently appear together with a given tag';
 COMMENT ON FUNCTION search_taxonomy IS 'Unified search across categories, tags, and brands with relevance scoring';
-COMMENT ON FUNCTION log_global_event IS 'Centralized event logging for system-wide activity tracking';
 COMMENT ON FUNCTION get_hierarchical_categories IS 'Returns a nested JSON structure of categories for navigation menus';

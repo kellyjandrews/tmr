@@ -66,7 +66,7 @@ CREATE TRIGGER update_inventory_modtime
 
 -- Function to update inventory quantity based on transactions
 CREATE OR REPLACE FUNCTION update_inventory_quantity()
-RETURNS TRIGGER AS $
+RETURNS TRIGGER AS $$
 BEGIN
     -- Update the inventory quantity based on the transaction type
     IF NEW.transaction_type IN ('purchase', 'return', 'restock') THEN
@@ -104,7 +104,7 @@ BEGIN
     
     RETURN NEW;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Trigger to automatically update inventory on transaction
 CREATE TRIGGER update_inventory_on_transaction

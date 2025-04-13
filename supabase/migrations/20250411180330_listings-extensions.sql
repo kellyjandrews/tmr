@@ -733,17 +733,23 @@ BEGIN
         );
     END IF;
     
-    -- Insert notification
-    INSERT INTO notifications(
-        recipient_id,
+-- Insert notification
+    INSERT INTO public.notifications(
+        account_id,
         notification_type,
         title,
         content,
-        data,
-        is_read
+        related_entity_id,
+        related_entity_type,
+        importance,
+        created_at
     ) VALUES (
         v_store_owner_id,
-        v_notification_type || '_received',
+        CASE 
+            WHEN v_notification_type = 'offer' THEN 'order_update'
+            WHEN v_notification_type = 'message' THEN 'message'
+            ELSE 'system_alert'
+        END,
         CASE 
             WHEN v_notification_type = 'offer' THEN 'New offer received'
             WHEN v_notification_type = 'message' THEN 'New message received'
@@ -754,8 +760,10 @@ BEGIN
             WHEN v_notification_type = 'message' THEN 'You received a new message about ' || v_listing_title
             ELSE 'There is new activity on your listing: ' || v_listing_title
         END,
-        v_notification_data,
-        false
+        NEW.listing_id,
+        'listing',
+        'medium',
+        now()
     );
     
     RETURN NEW;

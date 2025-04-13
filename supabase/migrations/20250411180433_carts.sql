@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Carts Table
 CREATE TABLE public.carts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    account_id UUID NOT NULL,
+    account_id UUID, -- Changed to allow NULL for guest carts
     status TEXT NOT NULL DEFAULT 'active'
         CHECK (status IN ('active','checkout','completed','abandoned','merged')),
     subtotal DECIMAL(10,2) NOT NULL DEFAULT 0 
@@ -241,17 +241,33 @@ CREATE POLICY "Users can view and edit their own carts"
     ON public.carts FOR ALL 
     USING (auth.uid() = account_id);
 
+-- Allow access to guest carts using device_id
+CREATE POLICY "Users can access guest carts by device_id" 
+    ON public.carts FOR ALL 
+    USING (
+        account_id IS NULL AND 
+        device_id = current_setting('request.headers', true)::json->>'device-id'
+    );
+
 -- Cart Items RLS
 ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can access items in their carts" 
     ON public.cart_items FOR ALL 
-    USING (cart_id IN (SELECT id FROM public.carts WHERE account_id = auth.uid()));
+    USING (cart_id IN (
+        SELECT id FROM public.carts 
+        WHERE account_id = auth.uid() OR 
+              (account_id IS NULL AND device_id = current_setting('request.headers', true)::json->>'device-id')
+    ));
 
 -- Cart Coupons RLS
 ALTER TABLE public.cart_coupons ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can access coupons in their carts" 
     ON public.cart_coupons FOR ALL 
-    USING (cart_id IN (SELECT id FROM public.carts WHERE account_id = auth.uid()));
+    USING (cart_id IN (
+        SELECT id FROM public.carts 
+        WHERE account_id = auth.uid() OR 
+              (account_id IS NULL AND device_id = current_setting('request.headers', true)::json->>'device-id')
+    ));
 
 -- Saved Cart Items RLS
 ALTER TABLE public.saved_cart_items ENABLE ROW LEVEL SECURITY;
@@ -267,13 +283,21 @@ CREATE POLICY "Users can view public saved items from any user"
 ALTER TABLE public.cart_shipping_options ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can access shipping options for their carts" 
     ON public.cart_shipping_options FOR ALL 
-    USING (cart_id IN (SELECT id FROM public.carts WHERE account_id = auth.uid()));
+    USING (cart_id IN (
+        SELECT id FROM public.carts 
+        WHERE account_id = auth.uid() OR 
+              (account_id IS NULL AND device_id = current_setting('request.headers', true)::json->>'device-id')
+    ));
 
 -- Cart Events RLS
 ALTER TABLE public.cart_events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view events for their carts" 
     ON public.cart_events FOR SELECT 
-    USING (cart_id IN (SELECT id FROM public.carts WHERE account_id = auth.uid()));
+    USING (cart_id IN (
+        SELECT id FROM public.carts 
+        WHERE account_id = auth.uid() OR 
+              (account_id IS NULL AND device_id = current_setting('request.headers', true)::json->>'device-id')
+    ));
 
 -- Comments for future reference
 COMMENT ON TABLE public.carts IS 'Stores user shopping cart data with comprehensive tracking';
@@ -549,6 +573,7 @@ BEGIN
     
     RETURN target_cart_id;
 END;
+
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Metrics view for cart analytics
