@@ -4,7 +4,7 @@ import { Inter } from 'next/font/google';
 import '@/styles/globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import { createSession } from '@/utils/supabase/serverSide';
+import { createSession } from '@/lib/supabase/serverSide';
 import type { Metadata } from 'next';
 
 const inter = Inter({ subsets: ['latin'] });

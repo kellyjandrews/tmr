@@ -1,7 +1,7 @@
 // app/dashboard/sell/page.tsx
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { createSession } from '@/utils/supabase/serverSide';
+import { createSession } from '@/lib/supabase/serverSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import ManageListingsClient from '@/components/listings/ManageListingsClient';
 import { PlusCircle, AlertCircle } from 'lucide-react';

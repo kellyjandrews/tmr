@@ -1,6 +1,6 @@
 // app/dashboard/favorites/page.tsx
 import { redirect } from 'next/navigation';
-import { createSession } from '@/utils/supabase/serverSide';
+import { createSession } from '@/lib/supabase/serverSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import FavoritesClient from '@/components/favorites/FavoritesClient';
 import { getWishlist, getFollowedStores } from '@/actions/favorites';

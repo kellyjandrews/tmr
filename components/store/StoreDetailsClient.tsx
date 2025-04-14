@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
-import { supabaseLoader } from '@/utils/supabase/clientSide';
+import { supabaseLoader } from '@/lib/supabase/clientSide';
 import FollowButton from '@/components/store/FollowButton';
 import type { Store } from '@/types/store';
 import type { Listing } from '@/types/listing';

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { ShoppingCart, X } from 'lucide-react';
 import { getCart } from '@/actions/cart';
 import { useRouter } from 'next/navigation';
-import { supabaseLoader } from '@/utils/supabase/clientSide';
+import { supabaseLoader } from '@/lib/supabase/clientSide';
 import type { CartSummary } from '@/types/cart';
 
 export default function MiniCart() {

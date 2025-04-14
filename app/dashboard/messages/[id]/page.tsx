@@ -1,6 +1,6 @@
 // app/dashboard/messages/[id]/page.tsx
 import { redirect, notFound } from 'next/navigation';
-import { createSession } from '@/utils/supabase/serverSide';
+import { createSession } from '@/lib/supabase/serverSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import Conversation from '@/components/messages/Conversation';
 import { getConversation } from '@/actions/messages';

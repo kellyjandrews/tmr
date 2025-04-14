@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { supabaseLoader } from '@/utils/supabase/clientSide';
+import { supabaseLoader } from '@/lib/supabase/clientSide';
 import ContactSeller from '@/components/messages/ContactSeller';
 import FavoriteButton from '@/components/listings/FavoriteButton';
 import AddToCartButton from '@/components/cart/AddToCarTButton';

@@ -1,6 +1,6 @@
 // app/dashboard/messages/page.tsx
 import { redirect } from 'next/navigation';
-import { createSession } from '@/utils/supabase/serverSide';
+import { createSession } from '@/lib/supabase/serverSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 
 export const metadata = {

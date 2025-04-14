@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingCart } from 'lucide-react';
-import { supabaseLoader } from '@/utils/supabase/clientSide';
+import { supabaseLoader } from '@/lib/supabase/clientSide';
 import { addToCart } from '@/actions/cart';
 import type { Listing } from '@/types/listing';
 

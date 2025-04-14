@@ -1,6 +1,6 @@
 // app/dashboard/sell/edit-listing/[id]/page.tsx
 import { redirect, notFound } from 'next/navigation';
-import { createSession } from '@/utils/supabase/serverSide';
+import { createSession } from '@/lib/supabase/serverSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import EditListingForm from '@/components/listings/EditListingForm';
 import { getListingForEdit } from '@/actions/listings-manage';

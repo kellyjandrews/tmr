@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/utils/supabase/clientSide';
+import { createClient } from '@/lib/supabase/clientSide';
 import type { Listing } from '@/types/listing';
 import ListingCard from '@/components/listings/ListingCard';
 

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Trash2, Plus, Minus, Loader2 } from 'lucide-react';
 import { updateCartItem, removeFromCart } from '@/actions/cart';
-import { supabaseLoader } from '@/utils/supabase/clientSide';
+import { supabaseLoader } from '@/lib/supabase/clientSide';
 import type { CartItemWithListing } from '@/types/cart';
 
 type CartItemProps = {

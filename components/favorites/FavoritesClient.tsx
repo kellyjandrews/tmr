@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, Star, ExternalLink } from 'lucide-react';
-import { supabaseLoader } from '@/utils/supabase/clientSide';
+import { supabaseLoader } from '@/lib/supabase/clientSide';
 import type { WishlistWithListing, FollowWithStore } from '@/types/favorites';
 
 type FavoritesClientProps = {

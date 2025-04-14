@@ -16,7 +16,7 @@ import {
   EyeOff,
   Tag
 } from 'lucide-react';
-import {supabaseLoader} from '@/utils/supabase/clientSide';
+import {supabaseLoader} from '@/lib/supabase/clientSide';
 import type { Category } from '@/types';
 import type { ListingFormData } from '@/types';
 import { uploadListingImage, deleteListingImage} from '@/actions/listings-image-upload';

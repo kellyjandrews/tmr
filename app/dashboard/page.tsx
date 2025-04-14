@@ -1,7 +1,7 @@
 // app/dashboard/page.tsx
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import DashboardHero from '@/components/dashboard/DashboardHero';
-import { createSession } from '@/utils/supabase/serverSide';
+import { createSession } from '@/lib/supabase/serverSide';
 import { redirect } from 'next/navigation';
 
 export const metadata = {

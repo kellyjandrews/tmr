@@ -1,6 +1,6 @@
 // app/dashboard/sell/create-listing/page.tsx
 import { redirect } from 'next/navigation';
-import { createSession } from '@/utils/supabase/serverSide';
+import { createSession } from '@/lib/supabase/serverSide';
 import DashboardPageWrapper from '@/components/dashboard/DashboardPageWrapper';
 import CreateListingForm from '@/components/listings/CreateListingForm';
 import { getMainCategories } from '@/actions/categories';

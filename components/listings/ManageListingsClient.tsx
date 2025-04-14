@@ -19,7 +19,7 @@ import {
   X,
   AlertTriangle
 } from 'lucide-react';
-import {supabaseLoader} from '@/utils/supabase/clientSide';
+import {supabaseLoader} from '@/lib/supabase/clientSide';
 import { changeListingStatus, deleteListing } from '@/actions/listings-manage';
 import type { Listing } from '@/types/listing';
 

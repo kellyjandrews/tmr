@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { supabaseLoader } from '@/utils/supabase/clientSide';
+import { supabaseLoader } from '@/lib/supabase/clientSide';
 import type { Category } from '@/types/category';
 import type { Listing } from '@/types/listing';
 import CategoryNavMenu from '@/components/layout/NavMenu';
