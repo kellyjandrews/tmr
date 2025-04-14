@@ -1,7 +1,7 @@
 // app/actions/carts.ts
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createSession } from '@/lib/supabase/serverSide'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
@@ -12,7 +12,7 @@ import { generateId } from '@/lib/utils'
  * Get the current user's active cart
  */
 export async function getActiveCart() {
-    const supabase = createClient()
+    const supabase = createSession()
 
     // Try to get user
     const { data: { user } } = await supabase.auth.getUser()
@@ -92,7 +92,7 @@ export async function getActiveCart() {
  * Create a new cart
  */
 async function createCart(accountId?: string, deviceId?: string) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: cart, error } = await supabase
         .from('carts')
@@ -127,7 +127,7 @@ async function createCart(accountId?: string, deviceId?: string) {
  * Add an item to cart
  */
 export async function addToCart(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const cart = await getActiveCart()
     if (!cart) throw new Error('Failed to get or create cart')
@@ -255,7 +255,7 @@ export async function addToCart(formData: FormData) {
  * Update cart item quantity
  */
 export async function updateCartItemQuantity(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const cart = await getActiveCart()
     if (!cart) throw new Error('Cart not found')
@@ -349,7 +349,7 @@ export async function updateCartItemQuantity(formData: FormData) {
  * Remove item from cart
  */
 export async function removeCartItem(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const cart = await getActiveCart()
     if (!cart) throw new Error('Cart not found')
@@ -413,7 +413,7 @@ export async function removeCartItem(formData: FormData) {
  * Apply coupon to cart
  */
 export async function applyCoupon(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const cart = await getActiveCart()
     if (!cart) throw new Error('Cart not found')
@@ -526,7 +526,7 @@ export async function applyCoupon(formData: FormData) {
  * Remove coupon from cart
  */
 export async function removeCoupon(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const cart = await getActiveCart()
     if (!cart) throw new Error('Cart not found')
@@ -560,7 +560,7 @@ export async function removeCoupon(formData: FormData) {
  * Update shipping details
  */
 export async function updateShippingDetails(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const cart = await getActiveCart()
     if (!cart) throw new Error('Cart not found')
@@ -622,7 +622,7 @@ export async function updateShippingDetails(formData: FormData) {
  * Save item for later
  */
 export async function saveForLater(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('You must be logged in to save items')
@@ -711,7 +711,7 @@ export async function saveForLater(formData: FormData) {
  * Get user's saved items
  */
 export async function getSavedItems(collectionName?: string) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
@@ -754,7 +754,7 @@ export async function getSavedItems(collectionName?: string) {
  * Move saved item to cart
  */
 export async function moveToCart(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('You must be logged in to access saved items')
@@ -809,7 +809,7 @@ export async function moveToCart(formData: FormData) {
  * Remove saved item
  */
 export async function removeSavedItem(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('You must be logged in to access saved items')

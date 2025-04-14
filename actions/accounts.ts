@@ -1,9 +1,8 @@
 // app/actions/accounts.ts
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createSession } from '@/lib/supabase/serverSide'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import type { Account, AccountAddress, AccountSettings, AccountPaymentInfo } from '@/types/accounts'
 
@@ -11,7 +10,7 @@ import type { Account, AccountAddress, AccountSettings, AccountPaymentInfo } fro
  * Get user profile data
  */
 export async function getProfile() {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
@@ -31,7 +30,7 @@ export async function getProfile() {
  * Update user profile
  */
 export async function updateProfile(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -67,7 +66,7 @@ export async function updateProfile(formData: FormData) {
  * Get user addresses
  */
 export async function getUserAddresses() {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
@@ -88,7 +87,7 @@ export async function getUserAddresses() {
  * Add new user address
  */
 export async function addUserAddress(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -149,7 +148,7 @@ export async function addUserAddress(formData: FormData) {
  * Get user payment methods
  */
 export async function getUserPaymentMethods() {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
@@ -170,7 +169,7 @@ export async function getUserPaymentMethods() {
  * Get user settings
  */
 export async function getUserSettings() {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
@@ -190,7 +189,7 @@ export async function getUserSettings() {
  * Update user settings
  */
 export async function updateUserSettings(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')

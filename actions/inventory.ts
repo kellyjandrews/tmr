@@ -1,16 +1,16 @@
 // app/actions/inventory.ts
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createSession } from '@/lib/supabase/serverSide'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import type { Inventory, InventoryTransaction } from '@/types/inventory'
+import type { Inventory } from '@/types/inventory'
 
 /**
  * Get inventory for a listing
  */
 export async function getInventoryForListing(listingId: string) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data, error } = await supabase
         .from('inventory')
@@ -27,7 +27,7 @@ export async function getInventoryForListing(listingId: string) {
  * Get inventory with status for a listing
  */
 export async function getInventoryWithStatus(listingId: string) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data, error } = await supabase
         .from('inventory')
@@ -66,7 +66,7 @@ export async function getInventoryWithStatus(listingId: string) {
  * Create or update inventory for a listing
  */
 export async function updateInventory(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -178,7 +178,7 @@ export async function updateInventory(formData: FormData) {
  * Get inventory transaction history
  */
 export async function getInventoryTransactions(inventoryId: string, limit: number = 20) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
@@ -216,7 +216,7 @@ export async function getInventoryTransactions(inventoryId: string, limit: numbe
  * Add inventory transaction
  */
 export async function addInventoryTransaction(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -280,7 +280,7 @@ export async function addInventoryTransaction(formData: FormData) {
  * Get low stock inventory for a store
  */
 export async function getLowStockInventory(page: number = 1, perPage: number = 20) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { inventory: [], count: 0 }

@@ -156,7 +156,7 @@ export async function createStore(formData: FormData) {
  * Update store details
  */
 export async function updateStore(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -216,7 +216,7 @@ export async function updateStore(formData: FormData) {
  * Add store address
  */
 export async function addStoreAddress(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -285,7 +285,7 @@ export async function addStoreAddress(formData: FormData) {
 * Update store shipping policy
 */
 export async function updateShippingPolicy(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -441,7 +441,7 @@ export async function updateShippingPolicy(formData: FormData) {
 * Update store return policy
 */
 export async function updateReturnPolicy(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -524,7 +524,7 @@ export async function addStoreImages(imageData: {
     altText?: string;
     isPrimary?: boolean;
 }) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -584,7 +584,7 @@ export async function addStoreImages(imageData: {
 * Update store categories
 */
 export async function updateStoreCategories(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -637,7 +637,7 @@ export async function updateStoreCategories(formData: FormData) {
 * Get featured stores
 */
 export async function getFeaturedStores(limit = 6) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data, error } = await supabase
         .from('stores')
@@ -676,7 +676,7 @@ export async function searchStores(params: {
         perPage = 20
     } = params
 
-    const supabase = createClient()
+    const supabase = createSession()
 
     let queryBuilder = supabase
         .from('stores')

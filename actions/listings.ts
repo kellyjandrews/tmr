@@ -1,17 +1,16 @@
 // app/actions/listings.ts
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createSession } from '@/lib/supabase/serverSide'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import type { Listing, ListingImage, ListingShipping, ListingPrice, ListingCategory, ListingTag } from '@/types/listings'
+import type { Listing, ListingImage } from '@/types/listings'
 
 /**
  * Get a listing by ID
  */
 export async function getListingById(id: string) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data, error } = await supabase
         .from('listings')
@@ -40,7 +39,7 @@ export async function getListingById(id: string) {
  * Get a listing with all details by ID
  */
 export async function getListingWithDetails(id: string) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data, error } = await supabase
         .from('listings')
@@ -101,7 +100,7 @@ export async function searchListings(params: {
         sortDirection = 'desc'
     } = params
 
-    const supabase = createClient()
+    const supabase = createSession()
 
     let queryBuilder = supabase
         .from('listings')
@@ -171,7 +170,7 @@ export async function searchListings(params: {
  * Create a new listing
  */
 export async function createListing(formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -246,7 +245,7 @@ export async function createListing(formData: FormData) {
  * Update a listing
  */
 export async function updateListing(id: string, formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -399,7 +398,7 @@ export async function updateListing(id: string, formData: FormData) {
  * Add images to a listing
  */
 export async function addListingImages(id: string, imageUrls: string[], primaryIndex: number = 0) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -458,7 +457,7 @@ export async function addListingImages(id: string, imageUrls: string[], primaryI
  * Delete a listing
  */
 export async function deleteListing(id: string) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -492,7 +491,7 @@ export async function deleteListing(id: string) {
  * Update listing shipping information
  */
 export async function updateListingShipping(id: string, formData: FormData) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -583,7 +582,7 @@ export async function updateListingShipping(id: string, formData: FormData) {
  * Get listings for the current user's store
  */
 export async function getStoreListings(page: number = 1, perPage: number = 20, status?: string) {
-    const supabase = createClient()
+    const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { listings: [], count: 0 }
