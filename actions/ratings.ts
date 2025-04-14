@@ -1,446 +1,398 @@
-// actions/reviews.ts
+// app/actions/search.ts
 'use server'
 
 import { createSession } from '@/lib/supabase/serverSide'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import type { Review, ReviewResponse, ReviewVote } from '@/types/stores'
 
 /**
- * Get reviews for a listing
+ * Search listings
  */
-export async function getListingReviews(listingId: string, page: number = 1, perPage: number = 10) {
+export async function searchListings(params: {
+    query?: string,
+    categoryId?: string,
+    brandId?: string,
+    minPrice?: number,
+    maxPrice?: number,
+    condition?: string[],
+    page?: number,
+    perPage?: number,
+    sortBy?: string,
+    sortDirection?: 'asc' | 'desc'
+}) {
+    const {
+        query,
+        categoryId,
+        brandId,
+        minPrice,
+        maxPrice,
+        condition,
+        page = 1,
+        perPage = 20,
+        sortBy = 'created_at',
+        sortDirection = 'desc'
+    } = params
+
     const supabase = createSession()
 
-    // Apply pagination
-    const from = (page - 1) * perPage
-    const to = from + perPage - 1
-
-    const { data, error, count } = await supabase
-        .from('reviews')
-        .select(`
-      *,
-      account:accounts(id, username, profile_picture_url),
-      responses:review_responses(
-        id, content, is_seller, created_at,
-        responder:accounts(id, username, profile_picture_url)
-      )
-    `, { count: 'exact' })
-        .eq('listing_id', listingId)
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false })
-        .range(from, to)
-
-    if (error) return { reviews: [], count: 0 }
-
-    // Get current user's votes on these reviews
-    const { data: { user } } = await supabase.auth.getUser()
-
-    let userVotes: Record<string, boolean> = {}
-
-    if (user) {
-        const { data: votes } = await supabase
-            .from('review_votes')
-            .select('review_id, is_helpful')
-            .eq('account_id', user.id)
-            .in('review_id', data.map(review => review.id))
-
-        if (votes) {
-            userVotes = votes.reduce((acc, vote) => {
-                acc[vote.review_id] = vote.is_helpful
-                return acc
-            }, {} as Record<string, boolean>)
-        }
-    }
-
-    return {
-        reviews: data.map(review => ({
-            ...review,
-            user_vote: userVotes[review.id]
-        })),
-        count: count || 0
-    }
-}
-
-/**
- * Get review summary for a listing
- */
-export async function getListingReviewSummary(listingId: string) {
-    const supabase = createSession()
-
-    const { data, error } = await supabase
-        .rpc('get_listing_review_summary', {
-            p_listing_id: listingId
-        })
-
-    if (error) return null
-
-    return data
-}
-
-/**
- * Create a new review
- */
-export async function createReview(formData: FormData) {
-    const supabase = createSession()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('You must be logged in to leave a review')
-
-    const listingId = formData.get('listing_id') as string
-    const orderId = formData.get('order_id') as string || null
-
-    // Verify the listing exists
-    const { data: listing, error: listingError } = await supabase
+    let queryBuilder = supabase
         .from('listings')
-        .select('id, store_id')
-        .eq('id', listingId)
-        .single()
+        .select(`
+      *,
+      store:stores(id, name, slug),
+      images:listing_images(image_url, is_primary),
+      currentPrice:listing_prices(price)
+    `, { count: 'exact' })
+        .eq('status', 'published')
+        .is('deleted_at', null)
+        .eq('listing_prices.is_current', true)
 
-    if (listingError || !listing) throw new Error('Listing not found')
+    // Apply search query if provided
+    if (query && query.trim() !== '') {
+        queryBuilder = queryBuilder.textSearch('search_vector', query)
+    }
 
-    // Check if user has already reviewed this listing
-    const { data: existingReview } = await supabase
-        .from('reviews')
-        .select('id')
-        .eq('listing_id', listingId)
-        .eq('account_id', user.id)
-        .single()
+    // Apply filters if provided
+    if (categoryId) {
+        queryBuilder = queryBuilder.eq('listing_categories.category_id', categoryId)
+    }
 
-    if (existingReview) throw new Error('You have already reviewed this listing')
+    if (brandId) {
+        queryBuilder = queryBuilder.eq('brand_id', brandId)
+    }
 
-    const schema = z.object({
-        rating: z.number().min(1).max(5),
-        title: z.string().max(200).optional(),
-        content: z.string().min(10).max(2000).optional(),
-        photos: z.array(z.object({
-            url: z.string().url(),
-            caption: z.string().max(200).optional()
-        })).optional()
-    })
+    if (minPrice !== undefined) {
+        queryBuilder = queryBuilder.gte('listing_prices.price', minPrice)
+    }
 
-    // Parse and validate form data
-    const parsed = schema.parse({
-        rating: parseInt(formData.get('rating') as string),
-        title: formData.get('title') || undefined,
-        content: formData.get('content') || undefined,
-        photos: formData.has('photos') ? JSON.parse(formData.get('photos') as string) : undefined
-    })
+    if (maxPrice !== undefined) {
+        queryBuilder = queryBuilder.lte('listing_prices.price', maxPrice)
+    }
 
-    // Determine if this is a verified purchase
-    let verifiedPurchase = false
-    if (orderId) {
-        const { data: order } = await supabase
-            .from('orders')
-            .select('id')
-            .eq('id', orderId)
-            .eq('account_id', user.id)
-            .eq('status', 'delivered')
-            .single()
+    if (condition && condition.length > 0) {
+        queryBuilder = queryBuilder.in('condition', condition)
+    }
 
-        verifiedPurchase = !!order
-    } else {
-        // Check if user has any delivered orders with this listing
-        const { data: orders } = await supabase
-            .from('orders')
+    // Apply sorting
+    if (sortBy === 'price') {
+        queryBuilder = queryBuilder.order('listing_prices.price', { ascending: sortDirection === 'asc' })
+    } else if (sortBy === 'rating') {
+        // Join with review data for rating sort
+        queryBuilder = queryBuilder
             .select(`
-                id,
-                items:order_items(listing_id)
-            `)
-            .eq('account_id', user.id)
-            .eq('status', 'delivered')
-
-        if (orders) {
-            verifiedPurchase = orders.some(order =>
-                order.items.some((item: any) => item.listing_id === listingId)
-            )
-        }
-    }
-
-    // Format photos object if present
-    let photosObject = null
-    if (parsed.photos && parsed.photos.length > 0) {
-        photosObject = {
-            urls: parsed.photos.map(p => p.url),
-            captions: parsed.photos.reduce((acc, p, index) => {
-                if (p.caption) acc[index.toString()] = p.caption
-                return acc
-            }, {} as Record<string, string>),
-            primary_index: 0
-        }
-    }
-
-    // Create review
-    const { data: review, error } = await supabase
-        .from('reviews')
-        .insert({
-            account_id: user.id,
-            listing_id: listingId,
-            order_id: orderId,
-            store_id: listing.store_id,
-            rating: parsed.rating,
-            title: parsed.title,
-            content: parsed.content,
-            verified_purchase: verifiedPurchase,
-            status: 'pending', // Requires approval
-            photos: photosObject
-        })
-        .select()
-        .single()
-
-    if (error) throw new Error(`Failed to create review: ${error.message}`)
-
-    revalidatePath(`/listings/${listingId}`)
-    return { success: true, reviewId: review.id }
-}
-
-/**
- * Respond to a review
- */
-export async function respondToReview(formData: FormData) {
-    const supabase = createSession()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('You must be logged in to respond to a review')
-
-    const reviewId = formData.get('review_id') as string
-    const content = formData.get('content') as string
-
-    if (!content || content.trim().length === 0) {
-        throw new Error('Response content is required')
-    }
-
-    // Determine if user is a seller for this listing
-    const { data: review, error: reviewError } = await supabase
-        .from('reviews')
-        .select('listing_id, store_id, stores!inner(owner_id)')
-        .eq('id', reviewId)
-        .single()
-
-    if (reviewError || !review) throw new Error('Review not found')
-
-    const isSeller = review.stores.owner_id === user.id
-
-    // Create response
-    const { error } = await supabase
-        .from('review_responses')
-        .insert({
-            review_id: reviewId,
-            account_id: user.id,
-            content,
-            is_seller: isSeller,
-            status: 'active'
-        })
-
-    if (error) throw new Error(`Failed to respond to review: ${error.message}`)
-
-    revalidatePath(`/listings/${review.listing_id}`)
-    return { success: true }
-}
-
-/**
- * Vote on a review
- */
-export async function voteOnReview(formData: FormData) {
-    const supabase = createSession()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('You must be logged in to vote on reviews')
-
-    const reviewId = formData.get('review_id') as string
-    const isHelpful = formData.get('is_helpful') === 'true'
-
-    // Check if user has already voted on this review
-    const { data: existingVote } = await supabase
-        .from('review_votes')
-        .select('id, is_helpful')
-        .eq('review_id', reviewId)
-        .eq('account_id', user.id)
-        .single()
-
-    if (existingVote) {
-        // Update existing vote
-        if (existingVote.is_helpful !== isHelpful) {
-            await supabase
-                .from('review_votes')
-                .update({ is_helpful: isHelpful })
-                .eq('id', existingVote.id)
-        } else {
-            // Delete vote if same (toggle off)
-            await supabase
-                .from('review_votes')
-                .delete()
-                .eq('id', existingVote.id)
-        }
+        *,
+        store:stores(id, name, slug),
+        images:listing_images(image_url, is_primary),
+        currentPrice:listing_prices(price),
+        reviews:reviews(rating)
+      `)
+            .order('reviews.avg(rating)', { ascending: sortDirection === 'asc' })
     } else {
-        // Create new vote
-        await supabase
-            .from('review_votes')
-            .insert({
-                review_id: reviewId,
-                account_id: user.id,
-                is_helpful: isHelpful
-            })
+        queryBuilder = queryBuilder.order(sortBy, { ascending: sortDirection === 'asc' })
     }
-
-    // The review's helpful_votes count is updated automatically by database trigger
-
-    // Get the listing ID for this review to revalidate path
-    const { data: review } = await supabase
-        .from('reviews')
-        .select('listing_id')
-        .eq('id', reviewId)
-        .single()
-
-    if (review) {
-        revalidatePath(`/listings/${review.listing_id}`)
-    }
-
-    return { success: true }
-}
-
-/**
- * Get user's reviews
- */
-export async function getUserReviews(page: number = 1, perPage: number = 10) {
-    const supabase = createSession()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { reviews: [], count: 0 }
 
     // Apply pagination
     const from = (page - 1) * perPage
     const to = from + perPage - 1
+    queryBuilder = queryBuilder.range(from, to)
 
-    const { data, error, count } = await supabase
-        .from('reviews')
-        .select(`
-      *,
-      listing:listings(id, title, slug, images:listing_images(image_url, is_primary)),
-      responses:review_responses(*)
-    `, { count: 'exact' })
-        .eq('account_id', user.id)
-        .order('created_at', { ascending: false })
-        .range(from, to)
+    const { data, error, count } = await queryBuilder
 
-    if (error) return { reviews: [], count: 0 }
+    if (error) return { listings: [], count: 0 }
 
+    // Transform the results for easier use in the UI
     return {
-        reviews: data.map(review => ({
-            ...review,
-            listing: {
-                ...review.listing,
-                image_url: review.listing?.images?.find((img: any) => img.is_primary)?.image_url ||
-                    review.listing?.images?.[0]?.image_url
-            }
+        listings: data.map(listing => ({
+            ...listing,
+            price: listing.currentPrice?.[0]?.price || 0,
+            primaryImage: listing.images?.find(img => img.is_primary)?.image_url || listing.images?.[0]?.image_url,
+            averageRating: listing.reviews
+                ? listing.reviews.reduce((sum: number, review: any) => sum + review.rating, 0) / listing.reviews.length
+                : null
         })),
         count: count || 0
     }
 }
 
 /**
- * Get store reviews (continued)
+ * Search stores
  */
-export async function getStoreReviews(storeId: string, page: number = 1, perPage: number = 10) {
+export async function searchStores(params: {
+    query?: string,
+    categoryId?: string,
+    page?: number,
+    perPage?: number,
+    sortBy?: string,
+    sortDirection?: 'asc' | 'desc'
+}) {
+    const {
+        query,
+        categoryId,
+        page = 1,
+        perPage = 20,
+        sortBy = 'rating',
+        sortDirection = 'desc'
+    } = params
+
     const supabase = createSession()
+
+    let queryBuilder = supabase
+        .from('stores')
+        .select(`
+      id,
+      name, 
+      slug,
+      description,
+      logo_url,
+      total_listings,
+      rating
+    `, { count: 'exact' })
+        .eq('status', 'active')
+        .is('deleted_at', null)
+
+    // Apply search query if provided
+    if (query && query.trim() !== '') {
+        queryBuilder = queryBuilder.or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+    }
+
+    // Filter by category if provided
+    if (categoryId) {
+        queryBuilder = queryBuilder.eq('store_categories.category_id', categoryId)
+    }
+
+    // Apply sorting
+    if (sortBy === 'total_listings') {
+        queryBuilder = queryBuilder.order('total_listings', { ascending: sortDirection === 'asc' })
+    } else if (sortBy === 'name') {
+        queryBuilder = queryBuilder.order('name', { ascending: sortDirection === 'asc' })
+    } else {
+        queryBuilder = queryBuilder.order('rating', { ascending: sortDirection === 'asc' })
+    }
 
     // Apply pagination
     const from = (page - 1) * perPage
     const to = from + perPage - 1
 
-    const { data, error, count } = await supabase
-        .from('reviews')
-        .select(`
-      *,
-      account:accounts(id, username, profile_picture_url),
-      listing:listings(id, title, slug, images:listing_images(image_url, is_primary)),
-      responses:review_responses(
-        id, content, is_seller, created_at,
-        responder:accounts(id, username, profile_picture_url)
-      )
-    `, { count: 'exact' })
-        .eq('store_id', storeId)
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false })
-        .range(from, to)
+    const { data, error, count } = await queryBuilder.range(from, to)
 
-    if (error) return { reviews: [], count: 0 }
+    if (error) return { stores: [], count: 0 }
 
     return {
-        reviews: data.map(review => ({
-            ...review,
-            listing: {
-                ...review.listing,
-                image_url: review.listing?.images?.find((img: any) => img.is_primary)?.image_url ||
-                    review.listing?.images?.[0]?.image_url
-            }
-        })),
+        stores: data,
         count: count || 0
     }
 }
 
 /**
- * Get store review summary
+ * Auto-complete search suggestions
  */
-export async function getStoreReviewSummary(storeId: string) {
+export async function getSearchSuggestions(prefix: string, limit = 10) {
     const supabase = createSession()
+
+    if (!prefix || prefix.trim().length < 2) return []
 
     const { data, error } = await supabase
-        .rpc('get_store_review_summary', {
-            p_store_id: storeId
-        })
+        .from('search_suggestions')
+        .select('suggestion, category, is_promoted')
+        .ilike('prefix', `${prefix.toLowerCase()}%`)
+        .order('is_promoted', { ascending: false })
+        .order('display_priority', { ascending: true })
+        .order('usage_count', { ascending: false })
+        .limit(limit)
 
-    if (error) return null
+    if (error) return []
 
     return data
 }
 
 /**
- * Moderate a review (for store owners and admins)
+ * Popular search terms
  */
-export async function moderateReview(formData: FormData) {
+export async function getPopularSearchTerms(limit = 10) {
+    const supabase = createSession()
+
+    const { data, error } = await supabase
+        .from('popular_search_terms')
+        .select('term, search_count, trending_score')
+        .order('trending_score', { ascending: false })
+        .limit(limit)
+
+    if (error) return []
+
+    return data
+}
+
+/**
+ * Record search history
+ */
+export async function recordSearch(searchData: {
+    query: string,
+    filters?: Record<string, any>,
+    resultsCount: number,
+    deviceType?: string,
+    coordinates?: { latitude: number, longitude: number }
+}) {
+    const supabase = createSession()
+
+    // Get current user if logged in
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // Get session ID from cookies for guest users
+    let sessionId = null
+    // In a real implementation, you would get the session ID from cookies here
+
+    // Record search history
+    const { error } = await supabase
+        .from('search_history')
+        .insert({
+            account_id: user?.id || null,
+            session_id: !user ? sessionId : null,
+            query: searchData.query,
+            filters: searchData.filters || null,
+            results_count: searchData.resultsCount,
+            device_type: searchData.deviceType || null,
+            location: searchData.coordinates ? {
+                latitude: searchData.coordinates.latitude,
+                longitude: searchData.coordinates.longitude
+            } : null
+        })
+
+    // Increment search count in popular search terms (upsert)
+    await supabase.rpc('increment_search_term', {
+        p_term: searchData.query.toLowerCase(),
+        p_result_count: searchData.resultsCount
+    })
+
+    return { success: !error }
+}
+
+/**
+ * Record search result click
+ */
+export async function recordSearchClick(searchHistoryId: string, clickedId: string) {
+    const supabase = createSession()
+
+    // Get current user if logged in
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // Update search history with clicked result
+    const { error } = await supabase
+        .from('search_history')
+        .update({
+            clicked_results: supabase.rpc('append_to_array', {
+                arr: 'clicked_results',
+                new_element: clickedId
+            })
+        })
+        .eq('id', searchHistoryId)
+        .eq('account_id', user?.id || null)
+
+    return { success: !error }
+}
+
+/**
+ * Get product recommendations
+ */
+export async function getRecommendations(params: {
+    listingId?: string,
+    type?: 'similar_item' | 'frequently_bought_together' | 'viewed_also_viewed' | 'personalized',
+    limit?: number
+}) {
+    const {
+        listingId,
+        type = 'similar_item',
+        limit = 5
+    } = params
+
+    const supabase = createSession()
+
+    // Get current user if logged in
+    const { data: { user } } = await supabase.auth.getUser()
+
+    let queryBuilder = supabase
+        .from('product_recommendations')
+        .select(`
+      listing_id,
+      recommendation_type,
+      confidence_score,
+      listing:listings(
+        id, title, slug,
+        currentPrice:listing_prices(price),
+        images:listing_images(image_url, is_primary),
+        reviews:reviews(rating)
+      )
+    `)
+        .eq('listing_prices.is_current', true)
+        .eq('listings.status', 'published')
+        .is('listings.deleted_at', null)
+        .limit(limit)
+
+    if (listingId) {
+        queryBuilder = queryBuilder.eq('source_listing_id', listingId)
+    }
+
+    if (type) {
+        queryBuilder = queryBuilder.eq('recommendation_type', type)
+    }
+
+    // For personalized recommendations, filter to current user
+    if (type === 'personalized' && user) {
+        queryBuilder = queryBuilder.eq('account_id', user.id)
+    }
+
+    // Apply ordering
+    queryBuilder = queryBuilder.order('confidence_score', { ascending: false })
+
+    // Execute query
+    const { data, error } = await queryBuilder
+
+    if (error) return []
+
+    // Transform results to more useful format
+    return data.map(item => ({
+        id: item.listing_id,
+        title: item.listing.title,
+        slug: item.listing.slug,
+        price: item.listing.currentPrice?.[0]?.price || 0,
+        image_url: item.listing.images?.find((img: any) => img.is_primary)?.image_url ||
+            item.listing.images?.[0]?.image_url,
+        rating: item.listing.reviews
+            ? (item.listing.reviews.reduce((sum: number, review: any) => sum + review.rating, 0) /
+                item.listing.reviews.length)
+            : null,
+        review_count: item.listing.reviews?.length || 0,
+        confidence_score: item.confidence_score,
+        recommendation_type: item.recommendation_type
+    }))
+}
+
+/**
+ * Get search analytics
+ */
+export async function getSearchAnalytics(timeRange: 'day' | 'week' | 'month' = 'week') {
     const supabase = createSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
-    const reviewId = formData.get('review_id') as string
-    const action = formData.get('action') as 'approve' | 'reject' | 'flag'
-
-    // Verify the user has permission to moderate this review
-    const { data: review, error: reviewError } = await supabase
-        .from('reviews')
-        .select('store_id, stores!inner(owner_id)')
-        .eq('id', reviewId)
+    // Verify admin access
+    const { data: account } = await supabase
+        .from('accounts')
+        .select('role')
+        .eq('id', user.id)
         .single()
 
-    if (reviewError || !review) throw new Error('Review not found')
-
-    // Check if user is the store owner
-    if (review.stores.owner_id !== user.id) {
-        // Check if user is an admin
-        const { data: account } = await supabase
-            .from('accounts')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-
-        if (!account || !['admin', 'moderator'].includes(account.role)) {
-            throw new Error('You do not have permission to moderate this review')
-        }
+    if (!account || !['admin', 'moderator'].includes(account.role)) {
+        throw new Error('You do not have permission to view analytics')
     }
 
-    // Update review status
-    const { error } = await supabase
-        .from('reviews')
-        .update({
-            status: action === 'approve' ? 'approved' : (action === 'reject' ? 'rejected' : 'flagged'),
-            approved_at: action === 'approve' ? new Date().toISOString() : null
+    // Get analytics data
+    const { data, error } = await supabase
+        .rpc('get_search_analytics', {
+            p_time_range: timeRange
         })
-        .eq('id', reviewId)
 
-    if (error) throw new Error(`Failed to moderate review: ${error.message}`)
+    if (error) return null
 
-    revalidatePath('/dashboard/reviews')
-    return { success: true }
+    return data
 }
