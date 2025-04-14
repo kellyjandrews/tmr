@@ -10,7 +10,8 @@ import type { Store } from '@/types/stores'
  * Get store by ID
  */
 export async function getStoreById(id: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('stores')
@@ -29,7 +30,8 @@ export async function getStoreById(id: string) {
  * Get store by slug
  */
 export async function getStoreBySlug(slug: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('stores')
@@ -56,7 +58,8 @@ export async function getStoreBySlug(slug: string) {
  * Get current user's store
  */
 export async function getCurrentUserStore() {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
@@ -87,7 +90,8 @@ export async function getCurrentUserStore() {
  * Create a new store
  */
 export async function createStore(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -156,7 +160,8 @@ export async function createStore(formData: FormData) {
  * Update store details
  */
 export async function updateStore(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -216,7 +221,8 @@ export async function updateStore(formData: FormData) {
  * Add store address
  */
 export async function addStoreAddress(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -285,7 +291,8 @@ export async function addStoreAddress(formData: FormData) {
 * Update store shipping policy
 */
 export async function updateShippingPolicy(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -372,13 +379,13 @@ export async function updateShippingPolicy(formData: FormData) {
             available: true,
             provider: formData.get('insurance_provider') || undefined,
             auto_insure_above: formData.has('auto_insure_above')
-                ? parseFloat(formData.get('auto_insure_above') as string)
+                ? Number.parseFloat(formData.get('auto_insure_above') as string)
                 : undefined,
             default_coverage_amount: formData.has('default_coverage_amount')
-                ? parseFloat(formData.get('default_coverage_amount') as string)
+                ? Number.parseFloat(formData.get('default_coverage_amount') as string)
                 : undefined,
             free_insurance_threshold: formData.has('free_insurance_threshold')
-                ? parseFloat(formData.get('free_insurance_threshold') as string)
+                ? Number.parseFloat(formData.get('free_insurance_threshold') as string)
                 : undefined,
         }
     } else {
@@ -389,16 +396,16 @@ export async function updateShippingPolicy(formData: FormData) {
     const parsed = schema.parse({
         shipping_type: formData.get('shipping_type'),
         domestic_processing_time: formData.has('domestic_processing_time')
-            ? parseInt(formData.get('domestic_processing_time') as string)
+            ? Number.parseInt(formData.get('domestic_processing_time') as string)
             : undefined,
         international_processing_time: formData.has('international_processing_time')
-            ? parseInt(formData.get('international_processing_time') as string)
+            ? Number.parseInt(formData.get('international_processing_time') as string)
             : undefined,
         free_shipping_threshold: formData.has('free_shipping_threshold')
-            ? parseFloat(formData.get('free_shipping_threshold') as string)
+            ? Number.parseFloat(formData.get('free_shipping_threshold') as string)
             : undefined,
         handling_fee: formData.has('handling_fee')
-            ? parseFloat(formData.get('handling_fee') as string)
+            ? Number.parseFloat(formData.get('handling_fee') as string)
             : undefined,
         shipping_carriers: shippingCarriers,
         international_shipping: formData.get('international_shipping') === 'true',
@@ -441,7 +448,8 @@ export async function updateShippingPolicy(formData: FormData) {
 * Update store return policy
 */
 export async function updateReturnPolicy(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -469,17 +477,17 @@ export async function updateReturnPolicy(formData: FormData) {
 
     // Parse and validate form data
     const parsed = schema.parse({
-        return_window: parseInt(formData.get('return_window') as string),
+        return_window: Number.parseInt(formData.get('return_window') as string),
         refund_method: formData.get('refund_method'),
         restocking_fee: formData.has('restocking_fee')
-            ? parseFloat(formData.get('restocking_fee') as string)
+            ? Number.parseFloat(formData.get('restocking_fee') as string)
             : undefined,
         condition_requirements: formData.get('condition_requirements'),
         return_shipping_paid_by: formData.get('return_shipping_paid_by'),
         exceptions: formData.get('exceptions') || undefined,
         digital_return_policy: formData.get('digital_return_policy') === 'true',
         refund_processing_time: formData.has('refund_processing_time')
-            ? parseInt(formData.get('refund_processing_time') as string)
+            ? Number.parseInt(formData.get('refund_processing_time') as string)
             : undefined,
     })
 
@@ -524,7 +532,8 @@ export async function addStoreImages(imageData: {
     altText?: string;
     isPrimary?: boolean;
 }) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -584,7 +593,8 @@ export async function addStoreImages(imageData: {
 * Update store categories
 */
 export async function updateStoreCategories(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -637,7 +647,8 @@ export async function updateStoreCategories(formData: FormData) {
 * Get featured stores
 */
 export async function getFeaturedStores(limit = 6) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('stores')
@@ -676,7 +687,8 @@ export async function searchStores(params: {
         perPage = 20
     } = params
 
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     let queryBuilder = supabase
         .from('stores')

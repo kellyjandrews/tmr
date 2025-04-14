@@ -24,7 +24,7 @@ export async function signUp(formData: FormData) {
     try {
         const parsed = schema.parse({ email, password, username })
 
-        const supabase = createSession()
+        const supabase = await createSession()
 
         // Create the user in Supabase Auth
         const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -90,7 +90,8 @@ export async function signIn(formData: FormData) {
     try {
         const parsed = schema.parse({ email, password })
 
-        const supabase = createSession()
+        const supabase = await createSession()
+
 
         const { data, error } = await supabase.auth.signInWithPassword({
             email: parsed.email,
@@ -118,7 +119,8 @@ export async function signIn(formData: FormData) {
  * Sign out the current user
  */
 export async function signOut() {
-    const supabase = createSession()
+    const supabase = await createSession()
+
     await supabase.auth.signOut()
 
     return redirect('/auth/login')
@@ -137,7 +139,8 @@ export async function requestPasswordReset(formData: FormData) {
     try {
         const parsed = schema.parse({ email })
 
-        const supabase = createSession()
+        const supabase = await createSession()
+
 
         const { error } = await supabase.auth.resetPasswordForEmail(parsed.email, {
             redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
@@ -169,7 +172,8 @@ export async function resetPassword(formData: FormData) {
     try {
         const parsed = schema.parse({ password, confirmPassword })
 
-        const supabase = createSession()
+        const supabase = await createSession()
+
 
         const { error } = await supabase.auth.updateUser({
             password: parsed.password,
@@ -190,7 +194,8 @@ export async function resetPassword(formData: FormData) {
  * Enable two-factor authentication
  */
 export async function setupTwoFactor() {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -229,7 +234,8 @@ export async function verifyTwoFactorToken(formData: FormData) {
     try {
         const parsed = schema.parse({ token })
 
-        const supabase = createSession()
+        const supabase = await createSession()
+
 
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Not authenticated')

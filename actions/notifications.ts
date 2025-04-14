@@ -9,8 +9,9 @@ import type { Notification } from '@/types/accounts'
 /**
  * Get user's notifications
  */
-export async function getUserNotifications(page: number = 1, perPage: number = 20, includeRead: boolean = false) {
-    const supabase = createSession()
+export async function getUserNotifications(page = 1, perPage = 20, includeRead = false) {
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { notifications: [], count: 0 }
@@ -59,7 +60,8 @@ export async function getUserNotifications(page: number = 1, perPage: number = 2
  * Mark notification as read
  */
 export async function markNotificationAsRead(notificationId: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -80,7 +82,8 @@ export async function markNotificationAsRead(notificationId: string) {
  * Mark all notifications as read
  */
 export async function markAllNotificationsAsRead() {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -112,7 +115,8 @@ export async function createNotification(data: {
     importance?: string;
     icon?: string;
 }) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const schema = z.object({
         accountId: z.string().uuid(),
@@ -155,7 +159,8 @@ export async function createNotification(data: {
  * Delete a notification
  */
 export async function deleteNotification(notificationId: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -176,7 +181,8 @@ export async function deleteNotification(notificationId: string) {
  * Clear all read notifications
  */
 export async function clearReadNotifications() {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -197,7 +203,8 @@ export async function clearReadNotifications() {
  * Update notification preferences
  */
 export async function updateNotificationPreferences(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')

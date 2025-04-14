@@ -4,13 +4,13 @@
 import { createSession } from '@/lib/supabase/serverSide'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import type { ShippingLabel } from '@/types/shippo_integration'
 
 /**
  * Get shipping rates for a cart
  */
 export async function getShippingRates(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -254,7 +254,8 @@ export async function getShippingRates(formData: FormData) {
  * Create shipping label for order
  */
 export async function createShippingLabel(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -459,7 +460,8 @@ export async function createShippingLabel(formData: FormData) {
  * Verify shipment delivery
  */
 export async function verifyDelivery(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -537,7 +539,7 @@ export async function verifyDelivery(formData: FormData) {
         })
 
     revalidatePath(`/orders/${parsed.order_id}`)
-    if (orderCheck.stores.owner_id === user.id) {
+    if (orderCheck.stores[0].owner_id === user.id) {
         revalidatePath('/dashboard/orders')
     }
 
@@ -548,7 +550,8 @@ export async function verifyDelivery(formData: FormData) {
  * Get shipping label by ID
  */
 export async function getShippingLabel(labelId: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -584,7 +587,8 @@ export async function getShippingLabel(labelId: string) {
  * Track shipment
  */
 export async function getShipmentTracking(trackingNumber: string, carrier: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     // Call Shippo API via Supabase Edge Function
     const { data, error } = await supabase.functions.invoke('track-shipment', {
@@ -606,7 +610,8 @@ export async function getShipmentTracking(trackingNumber: string, carrier: strin
  * Cancel shipping label
  */
 export async function cancelShippingLabel(labelId: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')

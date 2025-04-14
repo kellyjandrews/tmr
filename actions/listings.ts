@@ -10,7 +10,8 @@ import type { Listing, ListingImage } from '@/types/listings'
  * Get a listing by ID
  */
 export async function getListingById(id: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('listings')
@@ -39,7 +40,8 @@ export async function getListingById(id: string) {
  * Get a listing with all details by ID
  */
 export async function getListingWithDetails(id: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('listings')
@@ -100,7 +102,8 @@ export async function searchListings(params: {
         sortDirection = 'desc'
     } = params
 
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     let queryBuilder = supabase
         .from('listings')
@@ -170,7 +173,8 @@ export async function searchListings(params: {
  * Create a new listing
  */
 export async function createListing(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -204,7 +208,7 @@ export async function createListing(formData: FormData) {
         title: formData.get('title'),
         description: formData.get('description') || undefined,
         brand_id: formData.get('brand_id') || undefined,
-        year: formData.get('year') ? parseInt(formData.get('year') as string) : undefined,
+        year: formData.get('year') ? Number.parseInt(formData.get('year') as string) : undefined,
         condition: formData.get('condition') || undefined,
         model: formData.get('model') || undefined,
         as_is: formData.get('as_is') === 'true',
@@ -245,7 +249,8 @@ export async function createListing(formData: FormData) {
  * Update a listing
  */
 export async function updateListing(id: string, formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -279,7 +284,7 @@ export async function updateListing(id: string, formData: FormData) {
     if (formData.has('title')) updateData.title = formData.get('title')
     if (formData.has('description')) updateData.description = formData.get('description')
     if (formData.has('brand_id')) updateData.brand_id = formData.get('brand_id') || null
-    if (formData.has('year')) updateData.year = formData.get('year') ? parseInt(formData.get('year') as string) : null
+    if (formData.has('year')) updateData.year = formData.get('year') ? Number.parseInt(formData.get('year') as string) : null
     if (formData.has('condition')) updateData.condition = formData.get('condition') || null
     if (formData.has('model')) updateData.model = formData.get('model') || null
     if (formData.has('as_is')) updateData.as_is = formData.get('as_is') === 'true'
@@ -298,7 +303,7 @@ export async function updateListing(id: string, formData: FormData) {
 
     // Update price if provided
     if (formData.has('price')) {
-        const price = parseFloat(formData.get('price') as string)
+        const price = Number.parseFloat(formData.get('price') as string)
 
         // Get current price
         const { data: currentPrice } = await supabase
@@ -398,7 +403,8 @@ export async function updateListing(id: string, formData: FormData) {
  * Add images to a listing
  */
 export async function addListingImages(id: string, imageUrls: string[], primaryIndex: number = 0) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -457,7 +463,8 @@ export async function addListingImages(id: string, imageUrls: string[], primaryI
  * Delete a listing
  */
 export async function deleteListing(id: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -491,7 +498,8 @@ export async function deleteListing(id: string) {
  * Update listing shipping information
  */
 export async function updateListingShipping(id: string, formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -529,9 +537,9 @@ export async function updateListingShipping(id: string, formData: FormData) {
         formData.has('dimension_unit')
     ) {
         dimensions = {
-            length: parseFloat(formData.get('length') as string),
-            width: parseFloat(formData.get('width') as string),
-            height: parseFloat(formData.get('height') as string),
+            length: Number.parseFloat(formData.get('length') as string),
+            width: Number.parseFloat(formData.get('width') as string),
+            height: Number.parseFloat(formData.get('height') as string),
             unit: formData.get('dimension_unit') as 'in' | 'cm'
         }
     }
@@ -539,8 +547,8 @@ export async function updateListingShipping(id: string, formData: FormData) {
     // Parse and validate form data
     const parsed = schema.parse({
         shipping_type: formData.get('shipping_type'),
-        flat_rate: formData.has('flat_rate') ? parseFloat(formData.get('flat_rate') as string) : undefined,
-        weight: formData.has('weight') ? parseFloat(formData.get('weight') as string) : undefined,
+        flat_rate: formData.has('flat_rate') ? Number.parseFloat(formData.get('flat_rate') as string) : undefined,
+        weight: formData.has('weight') ? Number.parseFloat(formData.get('weight') as string) : undefined,
         carrier: formData.get('carrier') || undefined,
         international_shipping: formData.get('international_shipping') === 'true',
         dimensions
@@ -581,8 +589,9 @@ export async function updateListingShipping(id: string, formData: FormData) {
 /**
  * Get listings for the current user's store
  */
-export async function getStoreListings(page: number = 1, perPage: number = 20, status?: string) {
-    const supabase = createSession()
+export async function getStoreListings(page = 1, perPage = 20, status?: string) {
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { listings: [], count: 0 }

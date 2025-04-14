@@ -2,8 +2,6 @@
 'use server'
 
 import { createSession } from '@/lib/supabase/serverSide'
-import { revalidatePath } from 'next/cache'
-import { z } from 'zod'
 
 /**
  * Search listings
@@ -33,7 +31,8 @@ export async function searchListings(params: {
         sortDirection = 'desc'
     } = params
 
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     let queryBuilder = supabase
         .from('listings')
@@ -134,7 +133,8 @@ export async function searchStores(params: {
         sortDirection = 'desc'
     } = params
 
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     let queryBuilder = supabase
         .from('stores')
@@ -187,7 +187,8 @@ export async function searchStores(params: {
  * Auto-complete search suggestions
  */
 export async function getSearchSuggestions(prefix: string, limit = 10) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     if (!prefix || prefix.trim().length < 2) return []
 
@@ -209,7 +210,8 @@ export async function getSearchSuggestions(prefix: string, limit = 10) {
  * Popular search terms
  */
 export async function getPopularSearchTerms(limit = 10) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('popular_search_terms')
@@ -232,7 +234,8 @@ export async function recordSearch(searchData: {
     deviceType?: string,
     coordinates?: { latitude: number, longitude: number }
 }) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     // Get current user if logged in
     const { data: { user } } = await supabase.auth.getUser()
@@ -270,7 +273,8 @@ export async function recordSearch(searchData: {
  * Record search result click
  */
 export async function recordSearchClick(searchHistoryId: string, clickedId: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     // Get current user if logged in
     const { data: { user } } = await supabase.auth.getUser()
@@ -304,7 +308,8 @@ export async function getRecommendations(params: {
         limit = 5
     } = params
 
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     // Get current user if logged in
     const { data: { user } } = await supabase.auth.getUser()
@@ -370,7 +375,8 @@ export async function getRecommendations(params: {
  * Get search analytics
  */
 export async function getSearchAnalytics(timeRange: 'day' | 'week' | 'month' = 'week') {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')

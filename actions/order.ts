@@ -10,7 +10,8 @@ import { getActiveCart } from './cart'
  * Get order by ID
  */
 export async function getOrderById(id: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
@@ -52,8 +53,9 @@ export async function getOrderById(id: string) {
 /**
  * Get orders for the current user
  */
-export async function getUserOrders(page: number = 1, perPage: number = 10) {
-    const supabase = createSession()
+export async function getUserOrders(page = 1, perPage = 10) {
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { orders: [], count: 0 }
@@ -89,8 +91,9 @@ export async function getUserOrders(page: number = 1, perPage: number = 10) {
 /**
  * Get store orders for a seller
  */
-export async function getStoreOrders(page: number = 1, perPage: number = 20, status?: string) {
-    const supabase = createSession()
+export async function getStoreOrders(page = 1, perPage = 20, status?: string) {
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { orders: [], count: 0 }
@@ -144,7 +147,8 @@ export async function getStoreOrders(page: number = 1, perPage: number = 20, sta
  * Create an order from the current cart
  */
 export async function createOrderFromCart() {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('You must be logged in to create an order')
@@ -206,7 +210,8 @@ export async function createOrderFromCart() {
  * Update order status
  */
 export async function updateOrderStatus(orderId: string, status: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -230,7 +235,7 @@ export async function updateOrderStatus(orderId: string, status: string) {
     try {
         schema.parse(status)
     } catch (error) {
-        throw new Error('Invalid order status')
+        throw new Error(`Invalid order status: ${error}`)
     }
 
     // Update order status
@@ -263,7 +268,8 @@ export async function updateOrderStatus(orderId: string, status: string) {
  * Add order note
  */
 export async function addOrderNote(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -322,7 +328,8 @@ export async function addOrderNote(formData: FormData) {
  * Add shipment to order
  */
 export async function addOrderShipment(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -360,7 +367,7 @@ export async function addOrderShipment(formData: FormData) {
         tracking_number: formData.get('tracking_number'),
         tracking_url: formData.get('tracking_url') || undefined,
         shipment_method: formData.get('shipment_method'),
-        weight: formData.has('weight') ? parseFloat(formData.get('weight') as string) : undefined,
+        weight: formData.has('weight') ? Number.parseFloat(formData.get('weight') as string) : undefined,
         estimated_delivery_min: formData.get('estimated_delivery_min') || undefined,
         estimated_delivery_max: formData.get('estimated_delivery_max') || undefined,
         notes: formData.get('notes') || undefined,
@@ -375,9 +382,9 @@ export async function addOrderShipment(formData: FormData) {
         formData.has('height')
     ) {
         dimensions = {
-            length: parseFloat(formData.get('length') as string),
-            width: parseFloat(formData.get('width') as string),
-            height: parseFloat(formData.get('height') as string),
+            length: Number.parseFloat(formData.get('length') as string),
+            width: Number.parseFloat(formData.get('width') as string),
+            height: Number.parseFloat(formData.get('height') as string),
             unit: formData.get('dimension_unit') || 'in'
         }
     }
@@ -402,7 +409,7 @@ export async function addOrderShipment(formData: FormData) {
         const shipmentItems = itemIds.map((itemId: string) => ({
             shipment_id: shipment.id,
             order_item_id: itemId,
-            quantity: parseInt(formData.get(`quantity_${itemId}`) as string || '1')
+            quantity: Number.parseInt(formData.get(`quantity_${itemId}`) as string || '1')
         }))
 
         await supabase
@@ -453,7 +460,8 @@ export async function addOrderShipment(formData: FormData) {
  * Update order fulfillment status based on shipped items
  */
 async function updateOrderFulfillmentStatus(orderId: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     // Get total order items and shipped items count
     const { data: orderItems, error: itemsError } = await supabase
@@ -474,27 +482,29 @@ async function updateOrderFulfillmentStatus(orderId: string) {
     let totalItems = 0
     let shippedQuantity = 0
 
-    orderItems.forEach(item => {
+    // Calculate total items
+    for (const item of orderItems) {
         totalItems += item.quantity
-    })
+    }
 
     if (shippedItems) {
         const shippedQuantityByItem: Record<string, number> = {}
 
-        shippedItems.forEach(shipped => {
+        // Calculate shipped quantity by item ID
+        for (const shipped of shippedItems) {
             const itemId = shipped.order_item_id
             if (!shippedQuantityByItem[itemId]) {
                 shippedQuantityByItem[itemId] = 0
             }
             shippedQuantityByItem[itemId] += shipped.quantity
-        })
+        }
 
-        orderItems.forEach(item => {
+        // Calculate total shipped quantity
+        for (const item of orderItems) {
             const shipped = shippedQuantityByItem[item.id] || 0
             shippedQuantity += Math.min(shipped, item.quantity)
-        })
+        }
     }
-
     // Determine status
     let fulfillmentStatus = 'unfulfilled'
 

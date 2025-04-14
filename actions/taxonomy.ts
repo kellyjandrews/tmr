@@ -10,7 +10,8 @@ import type { Category, Tag, Brand } from '@/types/listings'
  * Get all categories
  */
 export async function getCategories(taxonomyType: string = 'product') {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('categories')
@@ -27,8 +28,9 @@ export async function getCategories(taxonomyType: string = 'product') {
 /**
  * Get category tree (hierarchical)
  */
-export async function getCategoryTree(taxonomyType: string = 'product') {
-    const supabase = createSession()
+export async function getCategoryTree(taxonomyType = 'product') {
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('categories')
@@ -73,7 +75,8 @@ export async function getCategoryTree(taxonomyType: string = 'product') {
  * Get category by ID
  */
 export async function getCategoryById(id: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('categories')
@@ -94,7 +97,8 @@ export async function getCategoryById(id: string) {
  * Get category by slug
  */
 export async function getCategoryBySlug(slug: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('categories')
@@ -115,7 +119,8 @@ export async function getCategoryBySlug(slug: string) {
  * Create a new category
  */
 export async function createCategory(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -147,7 +152,7 @@ export async function createCategory(formData: FormData) {
         taxonomy_type: formData.get('taxonomy_type') || 'product',
         parent_category_id: formData.get('parent_category_id') || undefined,
         display_order: formData.has('display_order')
-            ? parseInt(formData.get('display_order') as string)
+            ? Number.parseInt(formData.get('display_order') as string)
             : undefined,
         metadata: formData.has('metadata')
             ? JSON.parse(formData.get('metadata') as string)
@@ -196,7 +201,8 @@ export async function createCategory(formData: FormData) {
  * Update a category
  */
 export async function updateCategory(id: string, formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -227,7 +233,7 @@ export async function updateCategory(id: string, formData: FormData) {
     if (formData.has('name')) updateData.name = formData.get('name')
     if (formData.has('description')) updateData.description = formData.get('description')
     if (formData.has('parent_category_id')) updateData.parent_category_id = formData.get('parent_category_id')
-    if (formData.has('display_order')) updateData.display_order = parseInt(formData.get('display_order') as string)
+    if (formData.has('display_order')) updateData.display_order = Number.parseInt(formData.get('display_order') as string)
     if (formData.has('metadata')) updateData.metadata = JSON.parse(formData.get('metadata') as string)
     if (formData.has('is_active')) updateData.is_active = formData.get('is_active') === 'true'
 
@@ -276,7 +282,8 @@ export async function updateCategory(id: string, formData: FormData) {
  * Get all tags
  */
 export async function getTags(type: string = 'product') {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('tags')
@@ -294,7 +301,8 @@ export async function getTags(type: string = 'product') {
  * Get tag by ID
  */
 export async function getTagById(id: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('tags')
@@ -311,7 +319,8 @@ export async function getTagById(id: string) {
  * Create a new tag
  */
 export async function createTag(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -369,7 +378,8 @@ export async function createTag(formData: FormData) {
  * Update a tag
  */
 export async function updateTag(id: string, formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -426,7 +436,8 @@ export async function updateTag(id: string, formData: FormData) {
  * Get all brands
  */
 export async function getBrands() {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('brands')
@@ -443,7 +454,8 @@ export async function getBrands() {
  * Get brand by ID
  */
 export async function getBrandById(id: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('brands')
@@ -466,7 +478,8 @@ export async function getBrandById(id: string) {
  * Get brand by slug
  */
 export async function getBrandBySlug(slug: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('brands')
@@ -489,7 +502,8 @@ export async function getBrandBySlug(slug: string) {
  * Create a new brand
  */
 export async function createBrand(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -570,7 +584,8 @@ export async function createBrand(formData: FormData) {
  * Update a brand
  */
 export async function updateBrand(id: string, formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')

@@ -5,14 +5,15 @@ import { createSession } from '@/lib/supabase/serverSide'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
-import type { Cart, CartItem, CartShippingOption, SavedCartItem } from '@/types/carts'
+import type { CartItem } from '@/types/carts'
 import { generateId } from '@/lib/utils'
 
 /**
  * Get the current user's active cart
  */
 export async function getActiveCart() {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     // Try to get user
     const { data: { user } } = await supabase.auth.getUser()
@@ -92,7 +93,8 @@ export async function getActiveCart() {
  * Create a new cart
  */
 async function createCart(accountId?: string, deviceId?: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: cart, error } = await supabase
         .from('carts')
@@ -127,7 +129,8 @@ async function createCart(accountId?: string, deviceId?: string) {
  * Add an item to cart
  */
 export async function addToCart(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const cart = await getActiveCart()
     if (!cart) throw new Error('Failed to get or create cart')
@@ -144,7 +147,7 @@ export async function addToCart(formData: FormData) {
     // Parse and validate form data
     const parsed = schema.parse({
         listing_id: formData.get('listing_id'),
-        quantity: parseInt(formData.get('quantity') as string || '1'),
+        quantity: Number.parseInt(formData.get('quantity') as string || '1'),
         selected_options: formData.has('selected_options')
             ? JSON.parse(formData.get('selected_options') as string)
             : undefined,
@@ -255,7 +258,8 @@ export async function addToCart(formData: FormData) {
  * Update cart item quantity
  */
 export async function updateCartItemQuantity(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const cart = await getActiveCart()
     if (!cart) throw new Error('Cart not found')
@@ -268,7 +272,7 @@ export async function updateCartItemQuantity(formData: FormData) {
     // Parse and validate form data
     const parsed = schema.parse({
         item_id: formData.get('item_id'),
-        quantity: parseInt(formData.get('quantity') as string)
+        quantity: Number.parseInt(formData.get('quantity') as string)
     })
 
     // Get current item details
@@ -349,7 +353,8 @@ export async function updateCartItemQuantity(formData: FormData) {
  * Remove item from cart
  */
 export async function removeCartItem(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const cart = await getActiveCart()
     if (!cart) throw new Error('Cart not found')
@@ -413,7 +418,8 @@ export async function removeCartItem(formData: FormData) {
  * Apply coupon to cart
  */
 export async function applyCoupon(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const cart = await getActiveCart()
     if (!cart) throw new Error('Cart not found')
@@ -526,7 +532,8 @@ export async function applyCoupon(formData: FormData) {
  * Remove coupon from cart
  */
 export async function removeCoupon(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const cart = await getActiveCart()
     if (!cart) throw new Error('Cart not found')
@@ -560,7 +567,8 @@ export async function removeCoupon(formData: FormData) {
  * Update shipping details
  */
 export async function updateShippingDetails(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const cart = await getActiveCart()
     if (!cart) throw new Error('Cart not found')
@@ -622,7 +630,8 @@ export async function updateShippingDetails(formData: FormData) {
  * Save item for later
  */
 export async function saveForLater(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('You must be logged in to save items')
@@ -711,7 +720,8 @@ export async function saveForLater(formData: FormData) {
  * Get user's saved items
  */
 export async function getSavedItems(collectionName?: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
@@ -754,7 +764,8 @@ export async function getSavedItems(collectionName?: string) {
  * Move saved item to cart
  */
 export async function moveToCart(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('You must be logged in to access saved items')
@@ -809,7 +820,8 @@ export async function moveToCart(formData: FormData) {
  * Remove saved item
  */
 export async function removeSavedItem(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('You must be logged in to access saved items')

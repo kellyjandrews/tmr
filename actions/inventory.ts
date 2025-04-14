@@ -10,7 +10,8 @@ import type { Inventory } from '@/types/inventory'
  * Get inventory for a listing
  */
 export async function getInventoryForListing(listingId: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('inventory')
@@ -27,7 +28,8 @@ export async function getInventoryForListing(listingId: string) {
  * Get inventory with status for a listing
  */
 export async function getInventoryWithStatus(listingId: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data, error } = await supabase
         .from('inventory')
@@ -66,7 +68,8 @@ export async function getInventoryWithStatus(listingId: string) {
  * Create or update inventory for a listing
  */
 export async function updateInventory(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -94,9 +97,9 @@ export async function updateInventory(formData: FormData) {
     // Parse and validate form data
     const parsed = schema.parse({
         sku: formData.get('sku') || undefined,
-        quantity_available: parseInt(formData.get('quantity_available') as string),
+        quantity_available: Number.parseInt(formData.get('quantity_available') as string),
         restock_threshold: formData.has('restock_threshold')
-            ? parseInt(formData.get('restock_threshold') as string)
+            ? Number.parseInt(formData.get('restock_threshold') as string)
             : undefined,
         warehouse_location: formData.get('warehouse_location') || undefined,
         next_restock_date: formData.get('next_restock_date') || undefined,
@@ -177,8 +180,9 @@ export async function updateInventory(formData: FormData) {
 /**
  * Get inventory transaction history
  */
-export async function getInventoryTransactions(inventoryId: string, limit: number = 20) {
-    const supabase = createSession()
+export async function getInventoryTransactions(inventoryId: string, limit = 20) {
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
@@ -216,7 +220,8 @@ export async function getInventoryTransactions(inventoryId: string, limit: numbe
  * Add inventory transaction
  */
 export async function addInventoryTransaction(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -241,7 +246,7 @@ export async function addInventoryTransaction(formData: FormData) {
 
     // Parse and validate form data
     const parsed = schema.parse({
-        quantity_change: parseInt(formData.get('quantity_change') as string),
+        quantity_change: Number.parseInt(formData.get('quantity_change') as string),
         transaction_type: formData.get('transaction_type'),
         notes: formData.get('notes') || undefined,
     })
@@ -279,8 +284,9 @@ export async function addInventoryTransaction(formData: FormData) {
 /**
  * Get low stock inventory for a store
  */
-export async function getLowStockInventory(page: number = 1, perPage: number = 20) {
-    const supabase = createSession()
+export async function getLowStockInventory(page = 1, perPage = 20) {
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { inventory: [], count: 0 }

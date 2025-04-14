@@ -10,7 +10,8 @@ import type { PaymentTransaction } from '@/types/stripe_integration'
  * Create a payment intent
  */
 export async function createPaymentIntent(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -74,7 +75,8 @@ export async function createPaymentIntent(formData: FormData) {
  * Confirm payment success
  */
 export async function confirmPaymentSuccess(paymentIntentId: string) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -128,7 +130,8 @@ export async function confirmPaymentSuccess(paymentIntentId: string) {
  * Get payment methods for current user
  */
 export async function getUserPaymentMethods() {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
@@ -149,7 +152,8 @@ export async function getUserPaymentMethods() {
  * Add payment method
  */
 export async function addPaymentMethod(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -177,10 +181,10 @@ export async function addPaymentMethod(formData: FormData) {
         last_four: formData.get('last_four') || undefined,
         bin_category: formData.get('bin_category') || undefined,
         expiration_month: formData.has('expiration_month')
-            ? parseInt(formData.get('expiration_month') as string)
+            ? Number.parseInt(formData.get('expiration_month') as string)
             : undefined,
         expiration_year: formData.has('expiration_year')
-            ? parseInt(formData.get('expiration_year') as string)
+            ? Number.parseInt(formData.get('expiration_year') as string)
             : undefined,
         cardholder_name: formData.get('cardholder_name') || undefined,
         billing_address_id: formData.get('billing_address_id') || undefined,
@@ -216,7 +220,8 @@ export async function addPaymentMethod(formData: FormData) {
  * Process refund
  */
 export async function processRefund(formData: FormData) {
-    const supabase = createSession()
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -238,7 +243,7 @@ export async function processRefund(formData: FormData) {
     const parsed = schema.parse({
         order_id: formData.get('order_id'),
         order_item_id: formData.get('order_item_id') || undefined,
-        refund_amount: parseFloat(formData.get('refund_amount') as string),
+        refund_amount: Number.parseFloat(formData.get('refund_amount') as string),
         refund_method: formData.get('refund_method'),
         reason: formData.get('reason'),
         reason_category: formData.get('reason_category') || undefined,
@@ -264,7 +269,7 @@ export async function processRefund(formData: FormData) {
     }
 
     // Store owners can process refunds, customers can request them
-    const isStoreOwner = orderCheck.stores.owner_id === user.id
+    const isStoreOwner = orderCheck.stores[0].owner_id === user.id
     const isCustomer = orderCheck.account_id === user.id
 
     if (!isStoreOwner && !isCustomer) {
@@ -344,8 +349,9 @@ export async function processRefund(formData: FormData) {
 /**
  * Get user's payment transactions
  */
-export async function getUserTransactions(page: number = 1, perPage: number = 10) {
-    const supabase = createSession()
+export async function getUserTransactions(page = 1, perPage = 10) {
+    const supabase = await createSession()
+
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { transactions: [], count: 0 }
